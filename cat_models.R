@@ -1,8 +1,19 @@
 
+
+# Read data from csv ------------------------------------------------------
+
+
 setwd("~/Github Folder/cat_ModelVariant")
 
-data = read.csv("FilteredTestFile.csv")
+data = read.csv("Trainingset_Jan18_V1.csv")
 str(data) # check data structure
+
+verify_data = read.csv("Testset_Mar18_V1.csv")
+str(verify_data)
+
+## ## ## ## ## ## ## ##  
+# Not Required Now: Use Excel to add columns
+## ## ## ## ## ## ## ## 
 
 # search Features for key words and form a new column to merge with dataframe
 data$Features = as.character(data$Features)
@@ -26,74 +37,123 @@ sum(teste == data$Sport.Rims)/nrow(data) # checked correct
 
 testf = grepl("Reverse Camera", data$Features)
 sum(testf == data$Reverse.Camera)/nrow(data) # checked correct
+## ## ## ## ## ## ## ## 
 
+## ## ## ## ## ## ## ## 
 
-
-#####################
 ## consider using data.table package
 #install.packages("data.table")
 #library(data.table)
 #DT = data.table(data)
 #summary(DT)
 #DT[, grep("ABS", strsplit(Seller_Comments, " " ))]
-#####################
+
+## ## ## ## ## ## ## ## 
+
+# Extract data, form dataframe --------------------------------------------
 
 # extract relevant variables and form new dataframe
 str(data)
 
-testdata = cbind.data.frame(
-  data$ID, data$Brand, data$Model, data$Model.Variant, data$Mfg_Year, data$Engine_Capacity, data$Transmission,
+training_data = cbind.data.frame(
+  data$ID, data$Brand, data$Model, data$Features,
+  data$Model.Variant, data$Mfg_Year, data$Engine_Capacity, data$Transmission,
   data$Airbag, data$Leather, data$Nav, data$ABS, 
-  data$Sport.Rims, data$Reverse.Camera
+  data$Sport.Rims, data$Reverse.Camera, data$Power.Door,
+  data$Touchscreen, data$Climate.Control
 )
 
-names(testdata) = c("ID", "Brand", "Model", "Modelvar", "MfgYr", "CC", "Transm",
-                    "Airbag", "Leather", "Nav", "ABS",
-                    "SportRims", "RevCam"
+names(training_data) = c("ID", "Brand", "Model", "Features",
+                         "Modelvar", "MfgYr", "CC", "Transm",
+                         "Airbag", "Leather", "Nav", "ABS",
+                         "SportRims", "RevCam", "PowDoor",
+                         "TouchScreen", "ClimaCtrl"
                     )
 
-levels(testdata$Modelvar)
-levels(data$Model.Variant)
-all.equal(levels(testdata$Modelvar), levels(data$Model.Variant)) # check if no. of model variants matches Excel file, 468
+levels(training_data$Modelvar) # check if no. of model variants matches Excel file
+# most likely don't match, ignore and adjust at Brand level
 
+# all.equal(levels(testdata$Modelvar), levels(data$Model.Variant)) 
 
-# Test Dataset ----------------------------------------------------
-
-# Prepare Test Dataset
-testfile = read.csv("TestFile.csv")
-str(testfile)
-
-testfile_fil = cbind.data.frame(
-  testfile$ID, testfile$Brand, testfile$Model, testfile$Model.Variant, testfile$Mfg_Year, testfile$Engine_Capacity, testfile$Transmission,
-  testfile$Airbag, testfile$Leather, testfile$Nav, testfile$ABS, 
-  testfile$Sport.Rims, testfile$Reverse.Camera
+testing_data = cbind.data.frame(
+  verify_data$ID, verify_data$Brand, verify_data$Model, verify_data$Features,
+  verify_data$Model.Variant, verify_data$Mfg_Year, verify_data$Engine_Capacity, verify_data$Transmission,
+  verify_data$Airbag, verify_data$Leather, verify_data$Nav, verify_data$ABS, 
+  verify_data$Sport.Rims, verify_data$Reverse.Camera, verify_data$Power.Door,
+  verify_data$Touchscreen, verify_data$Climate.Control
 )
 
-names(testfile_fil) = c("ID", "Brand", "Model", "Modelvar", "MfgYr", "CC", "Transm",
-                    "Airbag", "Leather", "Nav", "ABS",
-                    "SportRims", "RevCam"
+names(testing_data) = c("ID", "Brand", "Model", "Features",
+                         "Modelvar", "MfgYr", "CC", "Transm",
+                         "Airbag", "Leather", "Nav", "ABS",
+                         "SportRims", "RevCam", "PowDoor",
+                         "TouchScreen", "ClimaCtrl"
 )
 
-str(testfile_fil)
-testfile_fil$MfgYr = as.numeric(testfile_fil$MfgYr) # convert yrs to int
-testfile_fil$MfgYr = as.numeric(scale(testfile_fil$MfgYr)) # scale & center numeric predictors, then coerce it back to numeric
-testfile_fil$CC = as.numeric(scale(testfile_fil$CC))
+str(testing_data)
 
-test_city = dplyr::filter(testfile_fil, Brand=="Honda" & Model=="City")
-plyr::count(test_city, "Modelvar") #check for fun, model var not fully completed yet
-str(test_city)
+all.equal(levels(testing_data$Modelvar), levels(training_data$Modelvar))
 
-test_myvi_man = dplyr::filter(testfile_fil, Brand=="Perodua" & Model=="MyVi" & Transm=="Manual")
-str(test_myvi_man)
 
-test_myvi_auto = dplyr::filter(testfile_fil, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto")
-str(test_myvi_auto)
+# Prep Training Dataset ----------------------------------------------------
 
-test_vios_man = dplyr::filter(testfile_fil, Brand=="Toyota" & Model=="Vios" & Transm=="Manual")
-str(test_vios_man)
+str(training_data)
+training_data$MfgYr = as.numeric(training_data$MfgYr) # convert "MfgYr" to int
+training_data$Features = as.character(training_data$Features) # convert "Features" to text
 
-test_vios_auto = dplyr::filter(testfile_fil, Brand=="Toyota" & Model=="Vios" & Transm=="Auto")
-str(test_vios_auto)
+
+library("scales")
+training_data$MfgYr = rescale(training_data$MfgYr, to=c(0,1))
+training_data$CC = rescale(training_data$CC, to=c(0,1))
+
+training_city = dplyr::filter(training_data, Brand=="Honda" & Model=="City")
+plyr::count(training_city, "Modelvar")
+str(training_city)
+
+training_myvi_man = dplyr::filter(training_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Manual")
+str(training_myvi_man)
+
+training_myvi_auto = dplyr::filter(training_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto")
+str(training_myvi_auto)
+
+training_vios_man = dplyr::filter(training_data, Brand=="Toyota" & Model=="Vios" & Transm=="Manual")
+str(training_vios_man)
+
+training_vios_auto = dplyr::filter(training_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto")
+str(training_vios_auto)
+
+
+
+# Prep Testing Dataset ----------------------------------------------------
+
+testing_data$MfgYr = as.numeric(testing_data$MfgYr) # convert "MfgYr" to int
+testing_data$CC = as.numeric(levels(testing_data$CC))[testing_data$CC]
+testing_data$Features = as.character(testing_data$Features) # convert "Features" to text
+
+testing_data$MfgYr = rescale(testing_data$MfgYr, to=c(0,1))
+testing_data$CC = rescale(testing_data$CC, to=c(0,1))
+
+testing_city = dplyr::filter(testing_data, Brand=="Honda" & Model=="City")
+plyr::count(testing_city, "Modelvar")
+testing_city = dplyr::filter(testing_city, Modelvar != "-")
+str(testing_city)
+
+training_myvi_man = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Manual")
+str(training_myvi_man)
+
+training_myvi_auto = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto")
+str(training_myvi_auto)
+
+training_vios_man = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Manual")
+str(training_vios_man)
+
+training_vios_auto = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto")
+str(training_vios_auto)
+
+
+
+
+
 
 # testdata$Modelvar = tolower(testdata$Modelvar) # convert all text to lower case
 # testdata$Modelvar = as.factor(testdata$Modelvar) # now dataframe shows 468 model variants
@@ -115,49 +175,107 @@ str(test_vios_auto)
 
 
 
+
 # Case: Honda City only ---------------------------------------------------
 
-# filter data for Honda cars only
+plyr::count(training_city, "Modelvar") # check with Excel model variants
+plyr::count(testing_city, "Modelvar")
 
-library(dplyr)
-testdata_hon = dplyr::filter(testdata, Brand=="Honda" & Model=="City")
-plyr::count(testdata_hon, "Modelvar") # check with Excel model variants
-levels(testdata_hon$Modelvar)[levels(testdata_hon$Modelvar)%in%c("E (New model)", "E (New Model)")] = "E (New Model)"
+testing_city$Modelvar = as.character(testing_city$Modelvar)
+unique(testing_city$Modelvar)
+
+testing_city$Modelvar[testing_city$Modelvar %in% c("E ", "E  ")] = "E"
+testing_city$Modelvar[testing_city$Modelvar %in% c("S ", "S  ")] = "S"
+testing_city$Modelvar[testing_city$Modelvar %in% c("VTEC ", "VTEC  ")] = "VTEC"
+
+testing_city$Modelvar = as.factor(testing_city$Modelvar)
+
+str(testing_city)
+# merge duplicated factor classes due to Upper/Lower cases
+levels(training_city$Modelvar)[levels(training_city$Modelvar)%in%c("E (New model)", "E (New Model)")] = "E (New Model)"
+
+training_city = droplevels(training_city)
+levels(training_city$Modelvar) # check if match Excel model var
+
+levels(testing_city$Modelvar)[levels(testing_city$Modelvar)%in%c("E (New model)", "E (New Model)")] = "E (New Model)"
+testing_city = droplevels(testing_city)
+levels(testing_city$Modelvar)
+
+city_levels = unique(c(levels(testing_city$Modelvar),levels(training_city$Modelvar)))
+training_city$Modelvar = factor(training_city$Modelvar, levels = city_levels)
+testing_city$Modelvar = factor(testing_city$Modelvar, levels = city_levels)
+
+all.equal(levels(testing_city), levels(training_city)) # kinda useless, only compare no. of levels but not the details
+
+str(training_city) # check no. of Modelvar, MfgYr & CC scaled properly
+
+# Identify useful predictors
+plyr::count(training_city, "Transm") # nearly all autos
+plyr::count(training_city, "CC") # all approx the same
+plyr::count(training_city, "Airbag")
+plyr::count(training_city, "Leather")
+plyr::count(training_city, "Nav")
+plyr::count(training_city, "ABS")
+plyr::count(training_city, "SportRims")
+plyr::count(training_city, "RevCam")
+plyr::count(training_city, "PowDoor")
+plyr::count(training_city, "TouchScreen") # all N/A
+plyr::count(training_city, "ClimaCtrl")
+
+# drop non-useful predictors
+drops = c("Transm", "CC", "TouchScreen")
+training_city = training_city[, !names(training_city) %in% drops]
+str(training_city)
+
+testing_city = testing_city[, !names(testing_city) %in% drops]
+str(testing_city)
 
 
 
-testdata_hon = droplevels(testdata_hon) # to refactor for Honda City Model Var only
-testdata_hon$MfgYr = as.numeric(testdata_hon$MfgYr) # convert yrs to int
-testdata_hon$MfgYr = as.numeric(scale(testdata_hon$MfgYr)) # scale & center numeric predictors, then coerce it back to numeric
-testdata_hon$CC = as.numeric(scale(testdata_hon$CC))
+# check and add extra key identifiers, if applicable
+# front fog lamp(NA), wing mirror with signal(NA), audio system(NA), paddle shift
 
-str(testdata_hon)
+test_search = grepl("fog", training_city$Features, ignore.case=TRUE)
+plyr::count(test_search)
+
+test_search = grepl("audio", training_city$Features, ignore.case=TRUE)
+plyr::count(test_search)
+
+test_search = grepl("signal", training_city$Features, ignore.case=TRUE)
+plyr::count(test_search)
+
+padshift_train_city = grepl("paddle", training_city$Features, ignore.case=TRUE)
+plyr::count(padshift_train_city)
+
+training_city$PadShift = padshift_train_city
+
+padshift_test_city = grepl("paddle", testing_city$Features, ignore.case=TRUE)
+plyr::count(padshift_test_city)
+
+testing_city$PadShift = padshift_test_city
+
+
+# Alternative keep useful predictor method
+# keeps = c("a", "b")
+# df[keeps, drop=FALSE]
+
 
 # NO LONGER REQUIRED: drop levels from all factor columns, alternative can use droplevels()
 # testdata_hon[] <- lapply(testdata_hon, function(x) if(is.factor(x)) factor(x) else x)
-# levels((testdata_hon$Modelvar)) # 11 variants for Honda City
+# levels((testdata_hon$Modelvar))
 
+# Mulitinomial model ------------------------------------------------------
 
-
-# from the plot, most key specs cant differentiate modelvar due to sparsity of data
-# mfg yr has some interesting info, models tend to aggregate in a  way
-plot(testdata_hon)
-
-
-# try multinomial model, logistic model first
-install.packages("nnet")
 library(nnet)
 
-# CHECK predictors to be removed
-str(testdata_hon)
-city_full = multinom(Modelvar ~ MfgYr, data = testdata_hon[,-c(1,2,3,7)], trace=F)
-city_pred = predict(city_full, newdata=testdata_hon[,-c(1,2,3,7)])
+multinom_city = multinom(Modelvar ~ ., data = training_city[,-c(1:4)], trace=F)
+multinom_city_pred = predict(multinom_city, newdata=testing_city[,-c(1:4)])
 
-levels(city_pred);levels(testdata_hon$Modelvar) # 5 levels
-plyr::count(city_pred); plyr::count(testdata_hon$Modelvar)
-
-cbind(plyr::count(city_pred), plyr::count(testdata_hon$Modelvar))
-1-sum(city_pred==testdata_hon$Modelvar)/nrow(testdata_hon) # rough gauge 37.78% error
+all.equal(levels(testing_city$Modelvar),levels(multinom_city_pred))
+levels(testing_city$Modelvar)
+levels(multinom_city_pred)
+1-sum(multinom_city_pred==testing_city$Modelvar)/length(multinom_city_pred) # 33.31% error
+table(multinom_city_pred, testing_city$Modelvar)
 
 city_out = cbind.data.frame(testdata_hon[,1], city_pred)
 write.csv(city_out, "city_out.csv")
@@ -165,36 +283,6 @@ write.csv(city_out, "city_out.csv")
 city_test_pred = predict(city_full, newdata=test_city[,-c(1,2,3,4,7)])
 city_out = cbind.data.frame(test_city[,1], city_test_pred)
 
-
-############ Additional work NOT REQUIRED
-
-#summary(multinom_hon) # r.d. 3010, AIC 3050
-#fitted(multinom_hon)
-# model.matrix(multinom_hon)
-
-#coef(multinom_hon) # baseline is model 1.3 (A)
-# fitted model is log[P(Y=j|x)/P(Y=1|x)] = intercept_j + 
-# \beta_{j1}*MfgYr2003 + ... + \beta_{j14}*MfgYr2016 for j=2,...,14
-
-#newdata_yr = data.frame(MfgYr=14)
-#predict(multinom_hon, newdata_yr)
-
-# compare with null model
-#multinom_hon_null = multinom(Modelvar ~ 1, data = testdata_hon, trace=F)
-#anova(multinom_hon_null, multinom_hon) 
-# Pr(Chi) less than 0.05, reject H0: null model is adequate
-
-# consider adding more predictors?? key specs?? might be too sparse
-# try adding CC as predictor
-
-#plot(testdata_hon$Modelvar, testdata_hon$CC)
-#multinom_hon1 = multinom(Modelvar ~ MfgYr + CC, data = testdata_hon, trace=F)
-
-#summary(multinom_hon1) # r.d. 3077, AIC 3137
-#anova(multinom_hon, multinom_hon1) # Pr(Chisq)>0.05, accept H0
-
-#multinom_hon2 = multinom(Modelvar ~ CC, data = testdata_hon, trace=F)
-#summary(multinom_hon2) # higher resid dev than the MfgYr model, r.d. 6402, AIC 6442
 
 
 # CV for multinom model ---------------------------------------------------
@@ -282,6 +370,113 @@ for(i in 1:8){
 
 
 
+# SVM approach ------------------------------------------------------------
+
+library(e1071)
+
+head(training_city)
+svm_test = svm(Modelvar ~ ., data = training_city[,-c(1:4)])
+svm_pred = predict(svm_test, newdata=training_city[,-c(1:4)])
+1-sum(training_city[,5]==svm_pred)/nrow(training_city) # 32.03% error rate
+
+plyr::count(svm_pred); plyr::count(training_city, vars="Modelvar")
+# model can't predict any of the "S" variants, est. categorized into "E"
+
+# SVM CV ------------------------------------------------------------------
+
+
+# CV the manual way
+svm_test = svm(Modelvar ~ ., data = testdata_hon[-c(1:50),-c(1:4)]) # train on the data excl. first 50
+svm_pred = predict(svm_test, newdata=testdata_hon[c(1:50),-c(1:4)]) # predict based on first 50 predictors
+sum(testdata_hon[c(1:50),5]==svm_pred)/nrow(testdata_hon[c(1:50),]) # 82% accuracy rate
+
+x2 = as.data.frame(training_city[,-c(1:4)])
+y2 = as.data.frame(training_city[,5])
+
+CV_values_svm = vector(length=1)
+n=length(training_city[,5])
+for(i in 1){
+  cvi=0
+  for(j in 1:5){
+    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
+    set_model = svm(training_city[-k,5] ~ ., data = training_city[-k, -c(1:4)], trace=F) 
+    yhat = predict(set_model, newdata=training_city[k, -c(1:4)])
+    cvi = cvi + (1 - sum(yhat==training_city[k,5])/length(yhat))
+  }
+  CV_values_svm[i] = cvi/5
+}
+
+CV_values_svm # 13.75% error rate
+
+levels(yhat); levels(training_city[,5])
+plyr::count(yhat); plyr::count(training_city[k,5])
+# at the last fold CV, as expected, due to lack of data of the new car models,
+# our svm model prediction led to more basic models "E" & "S"
+# the model has a higher success rate for predicting basic models
+
+# Tune - SVM --------------------------------------------------------------
+
+# initial model: cost = 1, gamma = 0.1, kernel = radial
+svm_tune_radial <- tune(svm, Modelvar ~  ., data = training_city[,-c(1:4)],
+                        kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+
+svm_tune$best.model # cost = 10, gamma = 0.5
+
+CV_values_svm = vector(length=1)
+n=length(training_city[,5])
+for(i in 1){
+  cvi=0
+  for(j in 1:5){
+    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
+    set_model = svm(training_city[-k,5] ~ ., data = training_city[-k, -c(1:4)], trace=F,
+                    cost = 10, gamma = 0.5) 
+    yhat = predict(set_model, newdata=training_city[k, -c(1:4)])
+    cvi = cvi + (1 - sum(yhat==training_city[k,5])/length(yhat))
+  }
+  CV_values_svm[i] = cvi/5
+}
+
+CV_values_svm # 4.5% error rate, MAJOR improvement over untuned model
+
+svm_tune_linear <- tune(svm, Modelvar ~  ., data = training_city[,-c(1:4)],
+                        kernel="linear", ranges=list(cost=10^(-1:2)))
+
+svm_tune_linear$best.model # cost = 0.1, gamma = 0.09090909
+
+CV_values_svm = vector(length=1)
+n=length(training_city[,5])
+for(i in 1){
+  cvi=0
+  for(j in 1:5){
+    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
+    set_model = svm(training_city[-k,5] ~ ., data = training_city[-k, -c(1:4)], trace=F,
+                    kernel = "linear", cost = 0.1, gamma = 0.09090909) 
+    yhat = predict(set_model, newdata=training_city[k, -c(1:4)])
+    cvi = cvi + (1 - sum(yhat==training_city[k,5])/length(yhat))
+  }
+  CV_values_svm[i] = cvi/5
+}
+
+CV_values_svm # 12.4% error rate, linear kernel perform worst than radial
+
+# Verification vs Testset -------------------------------------------------
+
+
+svm_city = svm(Modelvar ~ ., data = training_city[,-c(1:4)],
+               cost = 10, gamma = 0.5)
+test_output = predict(svm_city, newdata=testing_city[,-c(1:4)])
+
+1-sum(test_output==testing_city[,5])/length(test_output) #26.97% error rate
+
+table(test_output, testing_city[,5]) # compare differences
+
+# Ref: https://afit-r.github.io/svm
+
+
+
+
+
+
 # Case: Perodua Myvi only ---------------------------------------------------
 
 # filter data for Myvi only
@@ -308,7 +503,7 @@ levels(droplevels(testdata$Modelvar[testdata$Model=="MyVi"]))
 all.equal(levels(testdata_myvi$Modelvar), levels(droplevels(testdata$Modelvar[testdata$Model=="MyVi"]))) # won't be equal, manual check on Excel pivot table
 
 
-############
+## ## ## ## ## ## ## ##  
 # alternative soln to combine levels
 # ha <- list(
 #  unknown = c("unemployed","unknown","self-employed"),
@@ -316,7 +511,7 @@ all.equal(levels(testdata_myvi$Modelvar), levels(droplevels(testdata$Modelvar[te
 #)
 
 #for (i in 1:length(ha)) levels(z)[levels(z)%in%ha[[i]]] <- names(ha)[i]
-#############
+## ## ## ## ## ## ## ##  
 
 
 # should split manual / auto
@@ -501,64 +696,8 @@ plot(cvfit)
 
 
 
+# Caret - SVM -------------------------------------------------------------
 
-
-
-
-
-
-
-# try AIC, stepAIC issues, not reliable anyway
-install.packages("MASS")
-library(MASS)
-stepAIC(multinom_hon_null, direction="both",trace=TRUE) # issues, cant step up?
-
-
-# SVM approach ------------------------------------------------------------
-install.packages("e1071")
-library(e1071)
-
-svm_test = svm(Modelvar ~ ., data = testdata_hon[,-c(1,2)])
-svm_pred = predict(svm_test, newdata=testdata_hon[,-c(1,2)])
-1-sum(testdata_hon[,3]==svm_pred)/nrow(testdata_hon) # 38.47% error rate, 61.53% accuracy rate
-
-plyr::count(svm_pred); plyr::count(testdata_hon, vars="Modelvar")
-# model can't predict any of the "S" variants, mostly categorized into "E"
-
-
-# SVM CV ------------------------------------------------------------------
-
-
-# CV the manual way
-svm_test = svm(Modelvar ~ ., data = testdata_hon[-c(1:50),-c(1,2)]) # train on the data excl. first 50
-svm_pred = predict(svm_test, newdata=testdata_hon[c(1:50),-c(1,2)]) # predict based on first 50 predictors
-sum(testdata_hon[c(1:50),3]==svm_pred)/nrow(testdata_hon[c(1:50),]) # 82% accuracy rate
-
-x2 = as.data.frame(testdata_hon[,-c(1,2)])
-y2 = as.data.frame(testdata_hon[,3])
-
-CV_values_svm = vector(length=1)
-n=length(testdata_hon[,3])
-for(i in 1){
-  cvi=0
-  for(j in 1:5){
-    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
-    set_model = svm(testdata_hon[-k,3] ~ ., data = testdata_hon[-k, -c(1,2)], trace=F) 
-    yhat = predict(set_model, newdata=testdata_hon[k, -c(1,2)])
-    cvi = cvi + (1 - sum(yhat==testdata_hon[k,3])/length(yhat))
-  }
-  CV_values_svm[i] = cvi/5
-}
-
-CV_values_svm
-
-levels(yhat); levels(testdata_hon[,3])
-plyr::count(yhat); plyr::count(testdata_hon[k,3])
-# at the last fold CV, as expected, due to lack of data of the new car models,
-# our svm model prediction led to more basic models "E" & "S"
-# the model has a higher success rate for predicting basic models
-
-# consider doing 5-fold CV to compare with multinom model
 install.packages("caret")
 library(caret)
 
