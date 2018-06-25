@@ -5,38 +5,50 @@
 
 setwd("~/Github Folder/cat_ModelVariant")
 
-data = read.csv("Trainingset_Jan18_V1.csv")
-str(data) # check data structure
+# form training df
+data1 = read.csv("Testset_Feb18_V1.csv")
+data2 = read.csv('Trainingset_Jan18_V1.csv')
+data3 = read.csv('Dec17_V1.csv')
+data4 = read.csv('Nov17_V3.csv')
 
+# form testing df
 verify_data = read.csv("Testset_Mar18_V1.csv")
 str(verify_data)
+
+with(verify_data, mean(Price,na.rm = TRUE))
+
+summary(verify_data$Price)
 
 ## ## ## ## ## ## ## ##  
 # Not Required Now: Use Excel to add columns
 ## ## ## ## ## ## ## ## 
 
 # search Features for key words and form a new column to merge with dataframe
-data$Features = as.character(data$Features)
+data3$Features = as.character(data3$Features)
+data4$Features = as.character(data4$Features)
 
+data3$Airbag = grepl("Airbag", data3$Features)
+data3$Leather = grepl("Leather", data3$Features)
+data3$Nav = grepl("Nav", data3$Features)
+data3$ABS = grepl("ABS", data3$Features)
+data3$Sport.Rim = grepl("Sport rim", data3$Features) # no features extracted, consider remove
+data3$Reverse.Camera = grepl("Reverse camera", data3$Features) # no features extracted, consider remove
+data3$Power.Door = grepl("Power Door", data3$Features)
+data3$Touchscreen = grepl("Touchscreen", data3$Features) # no features extracted, consider remove
+data3$Climate.Control = grepl("Climate control", data3$Features) # no features extracted, consider remove
+str(data3)
+dim(data3)
 
-# check if R grepl function matches output with Excel search functions
-testa = grepl("ABS", data$Features) # returns TRUE/FALSE for selected keyword search, add ignore.case=T to ignore case matching
-sum(testa == data$ABS)/nrow(data) # checked correct
+data4$Airbag = grepl("Airbag", data4$Features)
+data4$Leather = grepl("Leather", data4$Features)
+data4$Nav = grepl("Nav", data4$Features)
+data4$ABS = grepl("ABS", data4$Features)
+data4$Sport.Rim = grepl("Sport rim", data4$Features) # no features extracted, consider remove
+data4$Reverse.Camera = grepl("Reverse camera", data4$Features) # no features extracted, consider remove
+data4$Power.Door = grepl("Power Door", data4$Features)
+data4$Touchscreen = grepl("Touchscreen", data4$Features) # no features extracted, consider remove
+data4$Climate.Control = grepl("Climate control", data4$Features) # no features extracted, consider remove
 
-testb = grepl("Airbag", data$Features)
-sum(testb == data$Airbag)/nrow(data) # checked correct
-
-testc = grepl("Leather", data$Features)
-sum(testc == data$Leather)/nrow(data) # checked correct
-
-testd = grepl("Nav", data$Features)
-sum(testd == data$Nav)/nrow(data) # checked correct
-
-teste = grepl("Sport Rims", data$Features)
-sum(teste == data$Sport.Rims)/nrow(data) # checked correct
-
-testf = grepl("Reverse Camera", data$Features)
-sum(testf == data$Reverse.Camera)/nrow(data) # checked correct
 ## ## ## ## ## ## ## ## 
 
 ## ## ## ## ## ## ## ## 
@@ -53,37 +65,95 @@ sum(testf == data$Reverse.Camera)/nrow(data) # checked correct
 # Extract data, form dataframe --------------------------------------------
 
 # extract relevant variables and form new dataframe
-str(data)
 
-training_data = cbind.data.frame(
-  data$ID, data$Brand, data$Model, data$Features,
-  data$Model.Variant, data$Mfg_Year, data$Engine_Capacity, data$Transmission,
-  data$Airbag, data$Leather, data$Nav, data$ABS, 
-  data$Sport.Rims, data$Reverse.Camera, data$Power.Door,
-  data$Touchscreen, data$Climate.Control
+training_data1 = cbind.data.frame(
+  data1$ID, data1$Brand, data1$Model, data1$Features, data1$Price,
+  data1$Model.Variant, data1$Mfg_Year, data1$Engine_Capacity, data1$Transmission,
+  data1$Airbag, data1$Leather, data1$Nav, data1$ABS, 
+  data1$Sport.Rims, data1$Reverse.Camera, data1$Power.Door,
+  data1$Touchscreen, data1$Climate.Control
 )
 
-names(training_data) = c("ID", "Brand", "Model", "Features",
+names(training_data1) = c("ID", "Brand", "Model", "Features", "Price",
                          "Modelvar", "MfgYr", "CC", "Transm",
                          "Airbag", "Leather", "Nav", "ABS",
                          "SportRims", "RevCam", "PowDoor",
                          "TouchScreen", "ClimaCtrl"
                     )
 
-levels(training_data$Modelvar) # check if no. of model variants matches Excel file
-# most likely don't match, ignore and adjust at Brand level
+training_data2 = cbind.data.frame(
+  data2$ID, data2$Brand, data2$Model, data2$Features, data2$Price,
+  data2$Model.Variant, data2$Mfg_Year, data2$Engine_Capacity, data2$Transmission,
+  data2$Airbag, data2$Leather, data2$Nav, data2$ABS, 
+  data2$Sport.Rims, data2$Reverse.Camera, data2$Power.Door,
+  data2$Touchscreen, data2$Climate.Control
+)
+
+names(training_data2) = c("ID", "Brand", "Model", "Features", "Price",
+                          "Modelvar", "MfgYr", "CC", "Transm",
+                          "Airbag", "Leather", "Nav", "ABS",
+                          "SportRims", "RevCam", "PowDoor",
+                          "TouchScreen", "ClimaCtrl"
+)
+
+training_data3 = cbind.data.frame(
+  data3$ID, data3$Brand, data3$Model, data3$Features, data3$Price,
+  data3$Model.variant, data3$Mfg_Year, data3$Engine_Capacity, data3$Transmission,
+  data3$Airbag, data3$Leather, data3$Nav, data3$ABS, 
+  data3$Sport.Rim, data3$Reverse.Camera, data3$Power.Door,
+  data3$Touchscreen, data3$Climate.Control
+)
+
+names(training_data3) = c("ID", "Brand", "Model", "Features", "Price",
+                          "Modelvar", "MfgYr", "CC", "Transm",
+                          "Airbag", "Leather", "Nav", "ABS",
+                          "SportRims", "RevCam", "PowDoor",
+                          "TouchScreen", "ClimaCtrl"
+)
+
+training_data4 = cbind.data.frame(
+  data4$ID, data4$Brand, data4$Model, data4$Features, data4$Price,
+  data4$Model.variant, data4$Mfg_Year, data4$Engine_Capacity, data4$Transmission,
+  data4$Airbag, data4$Leather, data4$Nav, data4$ABS, 
+  data4$Sport.Rim, data4$Reverse.Camera, data4$Power.Door,
+  data4$Touchscreen, data4$Climate.Control
+)
+
+names(training_data4) = c("ID", "Brand", "Model", "Features", "Price",
+                          "Modelvar", "MfgYr", "CC", "Transm",
+                          "Airbag", "Leather", "Nav", "ABS",
+                          "SportRims", "RevCam", "PowDoor",
+                          "TouchScreen", "ClimaCtrl"
+)
+
+str(training_data1) #56,458 obs
+str(training_data2) #58,536 obs
+str(training_data3) #109,892 obs
+str(training_data4) #109,591 obs
+
+# 1st case: choose most recent data set for training
+training_data = training_data1
+
+# 2nd case: merge historical datasets by outer join 2 df
+# consider using data.table for faster computation
+# Possible issues: join witihout specifying ID
+training_data = merge(training_data1, training_data2, all=TRUE)
+training_data = merge(training_data, training_data3, all=TRUE)
+training_data = merge(training_data, training_data4, all=TRUE)
+
+str(training_data) # 246,607 obs
 
 # all.equal(levels(testdata$Modelvar), levels(data$Model.Variant)) 
 
 testing_data = cbind.data.frame(
-  verify_data$ID, verify_data$Brand, verify_data$Model, verify_data$Features,
+  verify_data$ID, verify_data$Brand, verify_data$Model, verify_data$Features, verify_data$Price,
   verify_data$Model.Variant, verify_data$Mfg_Year, verify_data$Engine_Capacity, verify_data$Transmission,
   verify_data$Airbag, verify_data$Leather, verify_data$Nav, verify_data$ABS, 
   verify_data$Sport.Rims, verify_data$Reverse.Camera, verify_data$Power.Door,
   verify_data$Touchscreen, verify_data$Climate.Control
 )
 
-names(testing_data) = c("ID", "Brand", "Model", "Features",
+names(testing_data) = c("ID", "Brand", "Model", "Features", "Price",
                          "Modelvar", "MfgYr", "CC", "Transm",
                          "Airbag", "Leather", "Nav", "ABS",
                          "SportRims", "RevCam", "PowDoor",
@@ -106,7 +176,14 @@ library("scales")
 training_data$MfgYr = rescale(training_data$MfgYr, to=c(0,1))
 training_data$CC = rescale(training_data$CC, to=c(0,1))
 
-training_city = dplyr::filter(training_data, Brand=="Honda" & Model=="City")
+# # # # # # # #
+# Do by Make  #
+#             #
+#             #
+# # # # # # # #
+
+
+training_city = dplyr::filter(training_data, Brand=="Honda" & Model=="City" & Modelvar != "")
 plyr::count(training_city, "Modelvar")
 str(training_city)
 
@@ -122,8 +199,6 @@ str(training_vios_man)
 training_vios_auto = dplyr::filter(training_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto")
 str(training_vios_auto)
 
-
-
 # Prep Testing Dataset ----------------------------------------------------
 
 testing_data$MfgYr = as.numeric(testing_data$MfgYr) # convert "MfgYr" to int
@@ -133,34 +208,23 @@ testing_data$Features = as.character(testing_data$Features) # convert "Features"
 testing_data$MfgYr = rescale(testing_data$MfgYr, to=c(0,1))
 testing_data$CC = rescale(testing_data$CC, to=c(0,1))
 
-testing_city = dplyr::filter(testing_data, Brand=="Honda" & Model=="City")
-plyr::count(testing_city, "Modelvar")
-testing_city = dplyr::filter(testing_city, Modelvar != "-")
+testing_city = dplyr::filter(testing_data, Brand=="Honda" & Model=="City" & Modelvar != "")
 str(testing_city)
 
-training_myvi_man = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Manual")
-str(training_myvi_man)
+testing_myvi_man = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & 
+                                   Transm=="Manual" & !Modelvar %in% c("", "-"))
+str(testing_myvi_man)
 
-training_myvi_auto = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto")
-str(training_myvi_auto)
+testing_myvi_auto = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto" & Modelvar != "")
+str(testing_myvi_auto)
 
-training_vios_man = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Manual")
-str(training_vios_man)
+testing_vios_man = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Manual" & Modelvar != "")
+str(testing_vios_man)
 
-training_vios_auto = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto")
-str(training_vios_auto)
+testing_vios_auto = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto" & Modelvar != "")
+str(testing_vios_auto)
 
-
-
-
-
-
-# testdata$Modelvar = tolower(testdata$Modelvar) # convert all text to lower case
-# testdata$Modelvar = as.factor(testdata$Modelvar) # now dataframe shows 468 model variants
-
-
-
-# NO LONGER REQUIRED: Fix the duplicated levels for Honda City
+# NO LONGER REQUIRED: Fix the duplicated levels for Honda Citoy
 # which(testdata_hon$Modelvar=="V (New model)")
 # install.packages("forcats")
 # library(forcats)
@@ -171,18 +235,295 @@ str(training_vios_auto)
 # )
 
 
+# Case: Myvi Auto --------------------------------------------------------------
+
+plyr::count(training_myvi_auto, "Modelvar")
+plyr::count(testing_myvi_auto, "Modelvar")
+
+# convert variants to text
+training_myvi_auto$Modelvar = as.character(training_myvi_auto$Modelvar)
+testing_myvi_auto$Modelvar = as.character(testing_myvi_auto$Modelvar)
+
+
+# clean up spaces / upper-lower char and re-factor
+training_myvi_auto$Modelvar = as.factor(toupper(trimws(training_myvi_auto$Modelvar)))
+testing_myvi_auto$Modelvar = as.factor(toupper(trimws(testing_myvi_auto$Modelvar)))
+
+# occurences of manual / other variants
+levels(testing_myvi_auto$Modelvar)
+select_myvi_auto = c('1.3', '1.3 (A) EZ', '1.3 (A) EZI', '1.3 (A) SE', '1.3 (A) X', '1.5 SE (A)')
+
+training_myvi_auto = training_myvi_auto[training_myvi_auto$Modelvar %in% select_myvi_auto,]
+testing_myvi_auto = testing_myvi_auto[testing_myvi_auto$Modelvar %in% select_myvi_auto,]
+
+training_myvi_auto = droplevels(training_myvi_auto)
+testing_myvi_auto = droplevels(testing_myvi_auto)
+
+myvi_auto_levels = unique(c(levels(testing_myvi_auto$Modelvar),levels(training_myvi_auto$Modelvar)))
+
+training_myvi_auto$Modelvar = factor(training_myvi_auto$Modelvar, levels = myvi_auto_levels)
+testing_myvi_auto$Modelvar = factor(testing_myvi_auto$Modelvar, levels = myvi_auto_levels)
+
+# Case: Myvi Manual -------------------------------------------------------
+
+training_myvi_man$Modelvar = as.character(training_myvi_man$Modelvar)
+testing_myvi_man$Modelvar = as.character(testing_myvi_man$Modelvar)
+
+training_myvi_man$Modelvar = as.factor(toupper(trimws(training_myvi_man$Modelvar)))
+testing_myvi_man$Modelvar = as.factor(toupper(trimws(testing_myvi_man$Modelvar)))
+
+plyr::count(test$Modelvar)
+
+plyr::count(training_myvi_man, "Modelvar")
+plyr::count(testing_myvi_man, "Modelvar")
+
+# filter for variants with size > 50
+training_myvi_man = training_myvi_man %>% 
+  group_by(Modelvar) %>%
+  filter(n()>50) %>%
+  as.data.frame()
+
+testing_myvi_man = testing_myvi_man %>% 
+  group_by(Modelvar) %>%
+  filter(n()>50) %>%
+  as.data.frame()
+
+training_myvi_man = droplevels(training_myvi_man)
+testing_myvi_man = droplevels(testing_myvi_man)
+
+dplyr::all_equal(levels(training_myvi_man$Modelvar), levels(testing_myvi_man$Modelvar))
+
+# if not all_equal = False, then:
+# myvi_man_levels = unique(c(levels(testing_myvi_man$Modelvar),levels(training_myvi_man$Modelvar)))
+# training_myvi_man$Modelvar = factor(training_myvi_man$Modelvar, levels = myvi_man_levels)
+# testing_myvi_man$Modelvar = factor(testing_myvi_man$Modelvar, levels = myvi_man_levels)
+
+
+
+# Features Selection (Myvi Auto) -----------------------------------------------
+
+# Identify useful predictors
+plyr::count(training_myvi_auto, "Transm") # filtered for autos
+plyr::count(training_myvi_auto, "CC")
+plot(training_myvi_auto$CC) # 2 distinct different CCs but there are also spread of other values
+plyr::count(training_myvi_auto, "Airbag")
+plyr::count(training_myvi_auto, "Leather")
+plyr::count(training_myvi_auto, "Nav")
+plyr::count(training_myvi_auto, "ABS")
+plyr::count(training_myvi_auto, "SportRims")
+plyr::count(training_myvi_auto, "RevCam")
+plyr::count(training_myvi_auto, "PowDoor")
+plyr::count(training_myvi_auto, "TouchScreen") # all N/A
+plyr::count(training_myvi_auto, "ClimaCtrl")
+
+# drop non-useful predictors
+drops = c("Transm", "TouchScreen")
+training_myvi_auto = training_myvi_auto[, !names(training_myvi_auto) %in% drops]
+str(training_myvi_auto)
+
+testing_myvi_auto = testing_myvi_auto[, !names(testing_myvi_auto) %in% drops]
+str(testing_myvi_auto)
+
+test_search = grepl("leather", testing_myvi_auto$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", testing_myvi_auto$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+leather_train_myvi_auto = grepl("leather", training_myvi_auto$Features, ignore.case=TRUE)
+leather_test_myvi_auto = grepl("leather", testing_myvi_auto$Features, ignore.case=TRUE)
+
+light_train_myvi_auto = grepl("light", training_myvi_auto$Features, ignore.case=TRUE)
+light_test_myvi_auto = grepl("light", testing_myvi_auto$Features, ignore.case=TRUE)
+
+training_myvi_auto$Leather = leather_train_myvi_auto
+testing_myvi_auto$Leather = leather_test_myvi_auto
+
+training_myvi_auto$Light = light_train_myvi_auto
+testing_myvi_auto$Light = light_test_myvi_auto
+
+colnames(training_myvi_auto) == colnames(testing_myvi_auto)
+
+
+# Feature Selection (Myvi Manual) -----------------------------------------
+
+# Identify useful predictors
+plyr::count(training_myvi_man, "Transm") # filtered for manual
+plyr::count(training_myvi_man, "CC")
+plot(training_myvi_man$CC) # 2 distinct different CCs but there are also spread of other values
+plyr::count(training_myvi_man, "Airbag")
+plyr::count(training_myvi_man, "Leather")
+plyr::count(training_myvi_man, "Nav")
+plyr::count(training_myvi_man, "ABS")
+plyr::count(training_myvi_man, "SportRims")
+plyr::count(training_myvi_man, "RevCam")
+plyr::count(training_myvi_man, "PowDoor")
+plyr::count(training_myvi_man, "TouchScreen") # all N/A
+plyr::count(training_myvi_man, "ClimaCtrl")
+
+# drop non-useful predictors
+drops = c("Transm", "TouchScreen")
+training_myvi_man = training_myvi_man[, !names(training_myvi_man) %in% drops]
+# str(training_myvi_man)
+
+testing_myvi_man = testing_myvi_man[, !names(testing_myvi_man) %in% drops]
+# str(testing_myvi_man)
+
+test_search = grepl("leather", testing_myvi_man$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", testing_myvi_man$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+leather_train_myvi_auto = grepl("leather", training_myvi_man$Features, ignore.case=TRUE)
+leather_test_myvi_auto = grepl("leather", testing_myvi_man$Features, ignore.case=TRUE)
+
+light_train_myvi_auto = grepl("light", training_myvi_man$Features, ignore.case=TRUE)
+light_test_myvi_auto = grepl("light", testing_myvi_man$Features, ignore.case=TRUE)
+
+training_myvi_man$Leather = leather_train_myvi_auto
+testing_myvi_man$Leather = leather_test_myvi_auto
+
+training_myvi_man$Light = light_train_myvi_auto
+testing_myvi_man$Light = light_test_myvi_auto
+
+colnames(training_myvi_man) == colnames(testing_myvi_man)
+
+# SVM: Myvi Auto ---------------------------------------------------------
+
+library(e1071)
+
+# for merged dataset: took too long to run & produced error, filter first 3000 obs to train
+str(training_myvi_auto)
+
+system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = training_myvi_auto[,-c(1:4, 8)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+            )
+# for one dataset ~3,000 obs  # cost = 10, gamma = 0.1
+# user  system elapsed 
+# 341.22    1.87  345.62 
+
+# for 6,000 obs (excl price)
+# user  system elapsed 
+# 1272.97    6.91 1291.64 
+
+# for last 3,000+ obs (excl price)  # cost = 10, gamma = 1.1
+# user  system elapsed 
+# 539.41    3.09  568.40 
+
+# for last 3,000+ obs (excl CC)  # cost = 100, gamma = 0.1
+# user  system elapsed 
+# 505.91    1.51  525.30 
+
+svm_tune_radial$best.parameters
+
+# error rate is still high ~50%
+svm_myvi_auto = svm(Modelvar ~ ., data = training_myvi_auto[,-c(1:4, 8)], trace=F,
+                    cost = svm_tune_radial$best.parameters$cost, gamma = svm_tune_radial$best.parameters$gamma)
+svm_pred_myvi_auto = predict(svm_myvi_auto, newdata=testing_myvi_auto[,-c(1:4, 8)])
+
+1-sum(testing_myvi_auto[,6]==svm_pred_myvi_auto)/nrow(testing_myvi_auto)
+# Error rate
+# without price predictor 46% error rate
+# with price predictor 54% error rate
+# w/o cc 30%
+
+
+# Issues:
+# svm cant predict 1.3, 1.3
+# unless use more recent data
+
+table('Model: SVM' = svm_pred_myvi_auto, testing_myvi_auto[,6])
+
+model_price_myvi_auto = cbind.data.frame(testing_myvi_auto$Modelvar, svm_pred_myvi_auto, testing_myvi_auto$Price)
+names(model_price_myvi_auto) = c('ActualModel', 'EstModel', 'Price')
+
+myvi_auto_actual_price = model_price_myvi_auto %>% 
+  group_by(ActualModel) %>%
+  dplyr::summarise(Price = mean(Price))
+
+myvi_auto_est_price = model_price_myvi_auto %>%
+  group_by(EstModel) %>%
+  dplyr::summarise(Price = mean(Price))
+
+cbind.data.frame(myvi_auto_actual_price, 'Est Price' = myvi_auto_est_price$Price,
+                 'Diff' = abs(myvi_auto_actual_price$Price - myvi_auto_est_price$Price))
 
 
 
 
+# # # Improvements: # # #
 
+# categorize CC / scale after filtering for models
+# test caret
+# test gradient boosting
+
+
+# # # # # # # # # # # # #
+
+
+# SVM: Myvi Manual --------------------------------------------------------
+
+dim(training_myvi_man)
+str(training_myvi_man)
+
+system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = training_myvi_man[,-c(1:4, 8)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 800 obs, (17 - x) cols
+# user  system elapsed 
+# 41.33    0.16   42.62 
+
+svm_tune_radial$best.parameters 
+# cost= 10, gamma=0.1 full, excl price
+# cost=100, gamma=0.1 excl c(price,CC), CC
+
+svm_myvi_man = svm(Modelvar ~ ., data = training_myvi_man[,-c(1:4, 8)], trace=F,
+                    cost = 100, gamma = 0.1)
+svm_pred_myvi_man = predict(svm_myvi_man, newdata=testing_myvi_man[,-c(1:4, 8)])
+
+1-sum(testing_myvi_man[,6]==svm_pred_myvi_man)/nrow(testing_myvi_man)
+
+# Error rate info:
+# 81% full model
+# 87% excl price
+# 43% excl price, CC
+# 66% excl CC
+
+table('Model: SVM' = svm_pred_myvi_man, testing_myvi_man[,6]) # compare differences
+
+model_price_myvi_man = cbind.data.frame(testing_myvi_man$Modelvar, svm_pred_myvi_man, testing_myvi_man$Price)
+names(model_price_myvi_man) = c('ActualModel', 'EstModel', 'Price')
+
+myvi_man_actual_price = model_price_myvi_man %>% 
+  group_by(ActualModel) %>%
+  dplyr::summarise(Price = mean(Price))
+
+myvi_man_est_price = model_price_myvi_man %>%
+  group_by(EstModel) %>%
+  dplyr::summarise(Price = mean(Price))
+
+cbind.data.frame(myvi_man_actual_price, 'Est Price' = myvi_man_est_price$Price,
+                 'Diff' = abs(myvi_man_actual_price$Price - myvi_man_est_price$Price))
+                   
 # Case: Honda City only ---------------------------------------------------
 
 plyr::count(training_city, "Modelvar") # check with Excel model variants
 plyr::count(testing_city, "Modelvar")
 
+training_city$Modelvar = as.character(training_city$Modelvar)
 testing_city$Modelvar = as.character(testing_city$Modelvar)
-unique(testing_city$Modelvar)
+
+training_city$Modelvar = trimws(training_city$Modelvar)
+testing_city$Modelvar = trimws(testing_city$Modelvar)
+# Alternative function for trim spaces: trim <- function (x) gsub("^\\s+|\\s+$", "", x)
+
+training_city$Modelvar = as.factor(training_city$Modelvar)
+testing_city$Modelvar = as.factor(testing_city$Modelvar)
+
+# consider trim spaces first
+# trimws(x, which = c("both", "left", "right"))
 
 testing_city$Modelvar[testing_city$Modelvar %in% c("E ", "E  ")] = "E"
 testing_city$Modelvar[testing_city$Modelvar %in% c("S ", "S  ")] = "S"
@@ -191,6 +532,7 @@ testing_city$Modelvar[testing_city$Modelvar %in% c("VTEC ", "VTEC  ")] = "VTEC"
 testing_city$Modelvar = as.factor(testing_city$Modelvar)
 
 str(testing_city)
+levels(testing_city$Modelvar)
 # merge duplicated factor classes due to Upper/Lower cases
 levels(training_city$Modelvar)[levels(training_city$Modelvar)%in%c("E (New model)", "E (New Model)")] = "E (New Model)"
 
@@ -202,12 +544,13 @@ testing_city = droplevels(testing_city)
 levels(testing_city$Modelvar)
 
 city_levels = unique(c(levels(testing_city$Modelvar),levels(training_city$Modelvar)))
+city_levels
+
 training_city$Modelvar = factor(training_city$Modelvar, levels = city_levels)
 testing_city$Modelvar = factor(testing_city$Modelvar, levels = city_levels)
 
-all.equal(levels(testing_city), levels(training_city)) # kinda useless, only compare no. of levels but not the details
 
-str(training_city) # check no. of Modelvar, MfgYr & CC scaled properly
+# Feature selection (City) -------------------------------------------------------
 
 # Identify useful predictors
 plyr::count(training_city, "Transm") # nearly all autos
@@ -230,20 +573,6 @@ str(training_city)
 testing_city = testing_city[, !names(testing_city) %in% drops]
 str(testing_city)
 
-
-
-# check and add extra key identifiers, if applicable
-# front fog lamp(NA), wing mirror with signal(NA), audio system(NA), paddle shift
-
-test_search = grepl("fog", training_city$Features, ignore.case=TRUE)
-plyr::count(test_search)
-
-test_search = grepl("audio", training_city$Features, ignore.case=TRUE)
-plyr::count(test_search)
-
-test_search = grepl("signal", training_city$Features, ignore.case=TRUE)
-plyr::count(test_search)
-
 padshift_train_city = grepl("paddle", training_city$Features, ignore.case=TRUE)
 plyr::count(padshift_train_city)
 
@@ -259,7 +588,6 @@ testing_city$PadShift = padshift_test_city
 # keeps = c("a", "b")
 # df[keeps, drop=FALSE]
 
-
 # NO LONGER REQUIRED: drop levels from all factor columns, alternative can use droplevels()
 # testdata_hon[] <- lapply(testdata_hon, function(x) if(is.factor(x)) factor(x) else x)
 # levels((testdata_hon$Modelvar))
@@ -274,7 +602,10 @@ multinom_city_pred = predict(multinom_city, newdata=testing_city[,-c(1:4)])
 all.equal(levels(testing_city$Modelvar),levels(multinom_city_pred))
 levels(testing_city$Modelvar)
 levels(multinom_city_pred)
-1-sum(multinom_city_pred==testing_city$Modelvar)/length(multinom_city_pred) # 33.31% error
+1-sum(multinom_city_pred==testing_city$Modelvar)/length(multinom_city_pred) 
+# 33.63% error (Feb'18 test Mar'18)
+# 33.31% error (Jan'18 test Feb'18)
+# 35.31% error (merged Jan-Feb'18 test Mar'18)
 table(multinom_city_pred, testing_city$Modelvar)
 
 city_out = cbind.data.frame(testdata_hon[,1], city_pred)
@@ -382,7 +713,7 @@ svm_pred = predict(svm_test, newdata=training_city[,-c(1:4)])
 plyr::count(svm_pred); plyr::count(training_city, vars="Modelvar")
 # model can't predict any of the "S" variants, est. categorized into "E"
 
-# SVM CV ------------------------------------------------------------------
+# SVM CV (skip)------------------------------------------------------------------
 
 
 # CV the manual way
@@ -417,9 +748,11 @@ plyr::count(yhat); plyr::count(training_city[k,5])
 # Tune - SVM --------------------------------------------------------------
 
 # initial model: cost = 1, gamma = 0.1, kernel = radial
-svm_tune_radial <- tune(svm, Modelvar ~  ., data = training_city[,-c(1:4)],
+svm_tune_radial <- tune(svm, Modelvar ~ ., data = training_city[,-c(1:4)],
                         kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 
+str(training_city[,-c(1:4)])
+levels(training_city$Modelvar)
 svm_tune$best.model # cost = 10, gamma = 0.5
 
 CV_values_svm = vector(length=1)
@@ -441,7 +774,7 @@ CV_values_svm # 4.5% error rate, MAJOR improvement over untuned model
 svm_tune_linear <- tune(svm, Modelvar ~  ., data = training_city[,-c(1:4)],
                         kernel="linear", ranges=list(cost=10^(-1:2)))
 
-svm_tune_linear$best.model # cost = 0.1, gamma = 0.09090909
+svm_tune_linear$best.model # cost = 10, gamma = 0.09090909
 
 CV_values_svm = vector(length=1)
 n=length(training_city[,5])
@@ -450,30 +783,52 @@ for(i in 1){
   for(j in 1:5){
     k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
     set_model = svm(training_city[-k,5] ~ ., data = training_city[-k, -c(1:4)], trace=F,
-                    kernel = "linear", cost = 0.1, gamma = 0.09090909) 
+                    kernel = "linear", cost = 10, gamma = 0.09090909) 
     yhat = predict(set_model, newdata=training_city[k, -c(1:4)])
     cvi = cvi + (1 - sum(yhat==training_city[k,5])/length(yhat))
   }
   CV_values_svm[i] = cvi/5
 }
 
-CV_values_svm # 12.4% error rate, linear kernel perform worst than radial
+CV_values_svm 
+# 0.1% error with merged df
+# 12.4% error rate, linear kernel perform worst than radial
 
-# Verification vs Testset -------------------------------------------------
-
+# Verification vs Testset (Model variants) -------------------------------------------------
 
 svm_city = svm(Modelvar ~ ., data = training_city[,-c(1:4)],
-               cost = 10, gamma = 0.5)
-test_output = predict(svm_city, newdata=testing_city[,-c(1:4)])
+               kernel='radial', cost = 10, gamma = 0.5)
+test_output = predict(svm_city, newdata=testing_city[,-c(1:5)])
 
-1-sum(test_output==testing_city[,5])/length(test_output) #26.97% error rate
 
-table(test_output, testing_city[,5]) # compare differences
+1-sum(test_output==testing_city[,6])/length(test_output) #26.97% error rate
 
+table(test_output, testing_city[,6]) # compare differences
 # Ref: https://afit-r.github.io/svm
 
+# Verification vs Testset (Avg Price of Model variants) -------------------------------------------------
 
+str(training_city)
+str(testing_city)
 
+check_price_diff = cbind.data.frame(testing_city$Modelvar, test_output, testing_city$Price)
+names(check_price_diff) = c('ActualModel', 'EstModel', 'Price')
+
+check_price_diff_actual = group_by(check_price_diff, ActualModel)
+check_price_diff_actual = dplyr::summarise(check_price_diff_actual, Price = mean(Price))
+
+check_price_diff_est = group_by(check_price_diff, EstModel)
+check_price_diff_est = dplyr::summarise(check_price_diff_est, Price = mean(Price))
+
+cbind.data.frame(check_price_diff_actual, check_price_diff_est$Price)
+
+check_price_diff %>%
+  group_by(ActualModel) %>%
+  dplyr::summarise(Price = mean(Price))
+
+check_price_diff %>%
+  group_by(EstModel) %>%
+  dplyr::summarise(Price = mean(Price))
 
 
 
