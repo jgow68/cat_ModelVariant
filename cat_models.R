@@ -12,6 +12,7 @@ data3 = read.csv('Dec17_V1.csv')
 data4 = read.csv('Nov17_V3.csv')
 
 # form testing df
+
 verify_data = read.csv("Testset_Mar18_V1.csv")
 str(verify_data)
 
@@ -19,14 +20,27 @@ with(verify_data, mean(Price,na.rm = TRUE))
 
 summary(verify_data$Price)
 
-## ## ## ## ## ## ## ##  
-# Not Required Now: Use Excel to add columns
-## ## ## ## ## ## ## ## 
+
 
 # search Features for key words and form a new column to merge with dataframe
+data1$Features = as.character(data1$Features)
+data2$Features = as.character(data2$Features)
 data3$Features = as.character(data3$Features)
 data4$Features = as.character(data4$Features)
+verify_data$Features = as.character(verify_data$Features)
 
+# Data 1 Search
+data1$Airbag = grepl("Airbag", data1$Features)
+data1$Leather = grepl("Leather", data1$Features)
+data1$Nav = grepl("Nav", data1$Features)
+data1$ABS = grepl("ABS", data1$Features)
+data1$Sport.Rim = grepl("Sport rim", data1$Features) # no features extracted, consider remove
+data1$Reverse.Camera = grepl("Reverse camera", data1$Features) # no features extracted, consider remove
+data1$Power.Door = grepl("Power Door", data1$Features)
+data1$Climate.Control = grepl("Climate control", data1$Features) # no features extracted, consider remove
+data1$Light = grepl("Light", data1$Features)
+
+# Data 3 Search
 data3$Airbag = grepl("Airbag", data3$Features)
 data3$Leather = grepl("Leather", data3$Features)
 data3$Nav = grepl("Nav", data3$Features)
@@ -34,10 +48,8 @@ data3$ABS = grepl("ABS", data3$Features)
 data3$Sport.Rim = grepl("Sport rim", data3$Features) # no features extracted, consider remove
 data3$Reverse.Camera = grepl("Reverse camera", data3$Features) # no features extracted, consider remove
 data3$Power.Door = grepl("Power Door", data3$Features)
-data3$Touchscreen = grepl("Touchscreen", data3$Features) # no features extracted, consider remove
 data3$Climate.Control = grepl("Climate control", data3$Features) # no features extracted, consider remove
-str(data3)
-dim(data3)
+data3$Light = grepl("Light", data3$Features)
 
 data4$Airbag = grepl("Airbag", data4$Features)
 data4$Leather = grepl("Leather", data4$Features)
@@ -46,8 +58,19 @@ data4$ABS = grepl("ABS", data4$Features)
 data4$Sport.Rim = grepl("Sport rim", data4$Features) # no features extracted, consider remove
 data4$Reverse.Camera = grepl("Reverse camera", data4$Features) # no features extracted, consider remove
 data4$Power.Door = grepl("Power Door", data4$Features)
-data4$Touchscreen = grepl("Touchscreen", data4$Features) # no features extracted, consider remove
 data4$Climate.Control = grepl("Climate control", data4$Features) # no features extracted, consider remove
+data4$Light = grepl("Light", data4$Features)
+
+# Testset Search
+verify_data$Airbag = grepl("Airbag", verify_data$Features)
+verify_data$Leather = grepl("Leather", verify_data$Features)
+verify_data$Nav = grepl("Nav", verify_data$Features)
+verify_data$ABS = grepl("ABS", verify_data$Features)
+verify_data$Sport.Rim = grepl("Sport rim", verify_data$Features) # no features extracted, consider remove
+verify_data$Reverse.Camera = grepl("Reverse camera", verify_data$Features) # no features extracted, consider remove
+verify_data$Power.Door = grepl("Power Door", verify_data$Features)
+verify_data$Climate.Control = grepl("Climate control", verify_data$Features) # no features extracted, consider remove
+verify_data$Light = grepl("Light", verify_data$Features)
 
 ## ## ## ## ## ## ## ## 
 
@@ -71,14 +94,14 @@ training_data1 = cbind.data.frame(
   data1$Model.Variant, data1$Mfg_Year, data1$Engine_Capacity, data1$Transmission,
   data1$Airbag, data1$Leather, data1$Nav, data1$ABS, 
   data1$Sport.Rims, data1$Reverse.Camera, data1$Power.Door,
-  data1$Touchscreen, data1$Climate.Control
+  data1$Climate.Control, data1$Light
 )
 
 names(training_data1) = c("ID", "Brand", "Model", "Features", "Price",
                          "Modelvar", "MfgYr", "CC", "Transm",
                          "Airbag", "Leather", "Nav", "ABS",
                          "SportRims", "RevCam", "PowDoor",
-                         "TouchScreen", "ClimaCtrl"
+                         "ClimaCtrl", "Light"
                     )
 
 training_data2 = cbind.data.frame(
@@ -86,14 +109,14 @@ training_data2 = cbind.data.frame(
   data2$Model.Variant, data2$Mfg_Year, data2$Engine_Capacity, data2$Transmission,
   data2$Airbag, data2$Leather, data2$Nav, data2$ABS, 
   data2$Sport.Rims, data2$Reverse.Camera, data2$Power.Door,
-  data2$Touchscreen, data2$Climate.Control
+  data2$Climate.Control, data2$Light
 )
 
 names(training_data2) = c("ID", "Brand", "Model", "Features", "Price",
                           "Modelvar", "MfgYr", "CC", "Transm",
                           "Airbag", "Leather", "Nav", "ABS",
                           "SportRims", "RevCam", "PowDoor",
-                          "TouchScreen", "ClimaCtrl"
+                          "ClimaCtrl", "Light"
 )
 
 training_data3 = cbind.data.frame(
@@ -101,14 +124,14 @@ training_data3 = cbind.data.frame(
   data3$Model.variant, data3$Mfg_Year, data3$Engine_Capacity, data3$Transmission,
   data3$Airbag, data3$Leather, data3$Nav, data3$ABS, 
   data3$Sport.Rim, data3$Reverse.Camera, data3$Power.Door,
-  data3$Touchscreen, data3$Climate.Control
+  data3$Climate.Control, data3$Light
 )
 
 names(training_data3) = c("ID", "Brand", "Model", "Features", "Price",
                           "Modelvar", "MfgYr", "CC", "Transm",
                           "Airbag", "Leather", "Nav", "ABS",
                           "SportRims", "RevCam", "PowDoor",
-                          "TouchScreen", "ClimaCtrl"
+                          "ClimaCtrl", "Light"
 )
 
 training_data4 = cbind.data.frame(
@@ -116,14 +139,14 @@ training_data4 = cbind.data.frame(
   data4$Model.variant, data4$Mfg_Year, data4$Engine_Capacity, data4$Transmission,
   data4$Airbag, data4$Leather, data4$Nav, data4$ABS, 
   data4$Sport.Rim, data4$Reverse.Camera, data4$Power.Door,
-  data4$Touchscreen, data4$Climate.Control
+  data4$Climate.Control, data4$Light
 )
 
 names(training_data4) = c("ID", "Brand", "Model", "Features", "Price",
                           "Modelvar", "MfgYr", "CC", "Transm",
                           "Airbag", "Leather", "Nav", "ABS",
                           "SportRims", "RevCam", "PowDoor",
-                          "TouchScreen", "ClimaCtrl"
+                          "ClimaCtrl", "Light"
 )
 
 str(training_data1) #56,458 obs
@@ -150,89 +173,1540 @@ testing_data = cbind.data.frame(
   verify_data$Model.Variant, verify_data$Mfg_Year, verify_data$Engine_Capacity, verify_data$Transmission,
   verify_data$Airbag, verify_data$Leather, verify_data$Nav, verify_data$ABS, 
   verify_data$Sport.Rims, verify_data$Reverse.Camera, verify_data$Power.Door,
-  verify_data$Touchscreen, verify_data$Climate.Control
+  verify_data$Climate.Control, verify_data$Light
 )
 
 names(testing_data) = c("ID", "Brand", "Model", "Features", "Price",
                          "Modelvar", "MfgYr", "CC", "Transm",
                          "Airbag", "Leather", "Nav", "ABS",
                          "SportRims", "RevCam", "PowDoor",
-                         "TouchScreen", "ClimaCtrl"
+                         "ClimaCtrl", "Light"
 )
 
 str(testing_data)
 
 all.equal(levels(testing_data$Modelvar), levels(training_data$Modelvar))
 
-
 # Prep Training Dataset ----------------------------------------------------
 
-str(training_data)
-training_data$MfgYr = as.numeric(training_data$MfgYr) # convert "MfgYr" to int
+# # # Issues converting MfgYr to int will change numbers # # #
+ # # #                                                  # # #
+# # #                                                    # # #
+
+plyr::count(training_data$MfgYr)
+training_data = dplyr::filter(training_data, MfgYr != '1995 or older')
+
 training_data$Features = as.character(training_data$Features) # convert "Features" to text
 
+# transform CC numbers less than 100 to thousands
+plyr::count(training_data$CC<100)
+plyr::count(training_data$CC>10000)
 
-library("scales")
-training_data$MfgYr = rescale(training_data$MfgYr, to=c(0,1))
-training_data$CC = rescale(training_data$CC, to=c(0,1))
+training_data$CC_adj = ifelse(training_data$CC<100, training_data$CC*100,
+                              ifelse(training_data$CC<10000, training_data$CC, training_data$CC))
 
-# # # # # # # #
-# Do by Make  #
-#             #
-#             #
-# # # # # # # #
+training_data = dplyr::filter(training_data, !is.na(CC_adj))
+training_data = dplyr::filter(training_data, CC_adj < 10000)
 
+summary(training_data$CC_adj)
 
-training_city = dplyr::filter(training_data, Brand=="Honda" & Model=="City" & Modelvar != "")
-plyr::count(training_city, "Modelvar")
-str(training_city)
-
-training_myvi_man = dplyr::filter(training_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Manual")
-str(training_myvi_man)
-
-training_myvi_auto = dplyr::filter(training_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto")
-str(training_myvi_auto)
-
-training_vios_man = dplyr::filter(training_data, Brand=="Toyota" & Model=="Vios" & Transm=="Manual")
-str(training_vios_man)
-
-training_vios_auto = dplyr::filter(training_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto")
-str(training_vios_auto)
+# Try scaling at make / model level
+# library("scales")
+# training_data$MfgYr = rescale(training_data$MfgYr, to=c(0,1))
+# training_data$CC = rescale(training_data$CC, to=c(0,1))
 
 # Prep Testing Dataset ----------------------------------------------------
 
-testing_data$MfgYr = as.numeric(testing_data$MfgYr) # convert "MfgYr" to int
+plyr::count(testing_data$MfgYr)
+testing_data = dplyr::filter(testing_data, MfgYr != '1995 or older')
+# testing_data$MfgYr = as.numeric(testing_data$MfgYr) # convert "MfgYr" to int
+
 testing_data$CC = as.numeric(levels(testing_data$CC))[testing_data$CC]
 testing_data$Features = as.character(testing_data$Features) # convert "Features" to text
 
-testing_data$MfgYr = rescale(testing_data$MfgYr, to=c(0,1))
-testing_data$CC = rescale(testing_data$CC, to=c(0,1))
 
-testing_city = dplyr::filter(testing_data, Brand=="Honda" & Model=="City" & Modelvar != "")
-str(testing_city)
+plyr::count(testing_data$CC_adj<100)
+plyr::count(testing_data$CC>10000)
+testing_data$CC_adj = ifelse(testing_data$CC<100, testing_data$CC*100,
+                              ifelse(testing_data$CC<10000, testing_data$CC, testing_data$CC))
 
-testing_myvi_man = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & 
-                                   Transm=="Manual" & !Modelvar %in% c("", "-"))
-str(testing_myvi_man)
 
-testing_myvi_auto = dplyr::filter(testing_data, Brand=="Perodua" & Model=="MyVi" & Transm=="Auto" & Modelvar != "")
-str(testing_myvi_auto)
+testing_data = dplyr::filter(testing_data, !is.na(CC_adj))
+testing_data = dplyr::filter(testing_data, CC_adj < 10000)
 
-testing_vios_man = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Manual" & Modelvar != "")
-str(testing_vios_man)
 
-testing_vios_auto = dplyr::filter(testing_data, Brand=="Toyota" & Model=="Vios" & Transm=="Auto" & Modelvar != "")
-str(testing_vios_auto)
+# testing_data$MfgYr = rescale(testing_data$MfgYr, to=c(0,1))
+# testing_data$CC = rescale(testing_data$CC, to=c(0,1))
 
-# NO LONGER REQUIRED: Fix the duplicated levels for Honda Citoy
-# which(testdata_hon$Modelvar=="V (New model)")
-# install.packages("forcats")
-# library(forcats)
 
-# testest = factor(testdata_hon$Modelvar)
-# testdata_hon$Modelvar=fct_collapse(testdata_hon$Modelvar,"V (New Model)" = c("V (New model)", "V (New Model)"),
-#                          "E (New Model)" = c("E (New model)", "E (New Model)")
-# )
+
+
+# Chevrolet / Naza / Cherry: prep data ------------------------------------
+
+train_che = dplyr::filter(training_data, Brand=="Chevrolet")
+head(plyr::count(train_che$Modelvar))
+
+test_che = dplyr::filter(testing_data, Brand=="Chevrolet" & 
+                           !Modelvar %in% c('', '-', '0', '#N/A') &
+                           !is.na(Modelvar))
+head(plyr::count(test_che$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_che$Modelvar = as.factor(toupper(trimws(train_che$Modelvar)))
+test_che$Modelvar = as.factor(toupper(trimws(test_che$Modelvar)))
+
+plyr::count(train_che$CC_adj)
+plyr::count(test_che$CC_adj)
+
+train_che$CC_scl = as.numeric(scale(train_che$CC_adj))
+test_che$CC_scl = as.numeric(scale(test_che$CC_adj))
+
+# filter for variants with size > 30
+train_che = train_che %>% 
+  group_by(Modelvar) %>%
+  dplyr::filter(n()>30) %>%
+  as.data.frame()
+
+# test set no filter
+
+train_che = droplevels(train_che)
+test_che = droplevels(test_che)
+
+# standardize Variant levels
+che_var = unique(c(levels(train_che$Modelvar),levels(test_che$Modelvar)))
+train_che$Modelvar = factor(train_che$Modelvar, levels = che_var)
+test_che$Modelvar = factor(test_che$Modelvar, levels = che_var)
+summary(train_che$Modelvar)
+summary(test_che$Modelvar)
+
+# standardize Model levels
+che_mdl = unique(levels(train_che$Model),levels(test_che$Model))
+train_che$Model = factor(train_che$Model, levels = che_mdl)
+test_che$Model = factor(test_che$Model, levels = che_mdl)
+
+summary(train_che$Model)
+summary(test_che$Model)
+test_che = dplyr::filter(test_che, !is.na(Model))
+
+# standardize MfgYr levels
+che_yr = unique(levels(train_che$MfgYr), levels(test_che$MfgYr))
+train_che$MfgYr = factor(train_che$MfgYr, levels = che_yr)
+test_che$MfgYr = factor(test_che$MfgYr, levels = che_yr)
+
+summary(train_che$MfgYr)
+summary(test_che$MfgYr)
+test_che = dplyr::filter(test_che, !is.na(MfgYr))
+
+# Chevrolet: identify predictors ------------------------------------------
+
+plyr::count(train_che, "Transm") # all auto
+plyr::count(train_che, "Airbag")
+plyr::count(train_che, "Leather")
+plyr::count(train_che, "Nav")
+plyr::count(train_che, "ABS")
+plyr::count(train_che, "SportRims")
+plyr::count(train_che, "RevCam")
+plyr::count(train_che, "PowDoor") # weird some units have power door?
+plyr::count(train_che, "ClimaCtrl")
+plyr::count(train_che, "Light")
+
+drops = c("Transm")
+train_che = train_che[, !names(train_che) %in% drops]
+test_che = test_che[, !names(test_che) %in% drops]
+
+colnames(train_che) == colnames(test_che)
+colnames(train_che)
+str(train_che)
+
+
+# Chevrolet: SVM ----------------------------------------------------------
+
+system.time(tune_radial_che <- tune(svm, Modelvar ~ ., data = train_che[,-c(1:2, 4:5, 8, 18)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 200 obs, 19-6 variables, Transm removed
+# user  system elapsed 
+# 3.69    0.08    3.82 
+
+tune_radial_che$best.parameters 
+# incl. manf yr, CC cost=1, gamma=0.1
+
+# Model Group NA
+svm_che = svm(Modelvar ~., data = train_che[,-c(1:2, 4:5, 8, 18)],
+              kernel="radial", cost=tune_radial_che$best.parameters$cost,
+              gamma=tune_radial_che$best.parameters$gamma, trace=F
+)
+
+svm_est_che = predict(svm_che, newdata=test_che[,-c(1:2, 4:5, 8, 18)])
+
+1-sum(test_che[,6]==svm_est_che)/nrow(test_che)
+
+# Error info:
+# 10% (incl MfgYr, CC) excl Model Group
+
+che_tbl = table(test_che[,6], svm_est_che)
+write.csv(che_tbl,"che.csv")
+
+# Suzuki: prep data -------------------------------------------------------
+
+
+
+# Peugeot
+# BMW
+# Isuzu
+
+# Mazda: prep data --------------------------------------------------------
+
+train_mzd = dplyr::filter(training_data, Brand=="Mazda")
+head(plyr::count(train_mzd$Modelvar))
+
+test_mzd = dplyr::filter(testing_data, Brand=="Mazda" & 
+                            !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_mzd$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_mzd$Modelvar = as.factor(toupper(trimws(train_mzd$Modelvar)))
+test_mzd$Modelvar = as.factor(toupper(trimws(test_mzd$Modelvar)))
+
+plyr::count(train_mzd$CC_adj)
+plyr::count(test_mzd$CC_adj)
+
+train_mzd$CC_scl = as.numeric(scale(train_mzd$CC_adj))
+test_mzd$CC_scl = as.numeric(scale(test_mzd$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_mzd = train_mzd %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_mzd = test_mzd %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+
+test_mzd = dplyr::filter(test_mzd, Transm != "")
+
+train_mzd = droplevels(train_mzd)
+test_mzd = droplevels(test_mzd)
+
+# standardize Variant levels
+mzd_var = unique(c(levels(train_mzd$Modelvar),levels(test_mzd$Modelvar)))
+train_mzd$Modelvar = factor(train_mzd$Modelvar, levels = mzd_var)
+test_mzd$Modelvar = factor(test_mzd$Modelvar, levels = mzd_var)
+summary(train_mzd$Modelvar)
+summary(test_mzd$Modelvar)
+
+# standardize Model levels
+mzd_mdl = unique(levels(train_mzd$Model),levels(test_mzd$Model))
+train_mzd$Model = factor(train_mzd$Model, levels = mzd_mdl)
+test_mzd$Model = factor(test_mzd$Model, levels = mzd_mdl)
+
+summary(train_mzd$Model)
+# test_mzd = dplyr::filter(test_mzd, !is.na(Model))
+# issue: Model Group all NAs
+summary(test_mzd$Model)
+
+# standardize MfgYr levels
+mzd_yr = unique(levels(train_mzd$MfgYr), levels(test_mzd$MfgYr))
+train_mzd$MfgYr = factor(train_mzd$MfgYr, levels = mzd_yr)
+test_mzd$MfgYr = factor(test_mzd$MfgYr, levels = mzd_yr)
+
+summary(train_mzd$MfgYr)
+summary(test_mzd$MfgYr)
+
+
+# Mazda: id pred ----------------------------------------------------------
+
+plyr::count(train_mzd, "Transm") # 1 manual
+plyr::count(train_mzd, "Airbag")
+plyr::count(train_mzd, "Leather")
+plyr::count(train_mzd, "Nav")
+plyr::count(train_mzd, "ABS")
+plyr::count(train_mzd, "SportRims")
+plyr::count(train_mzd, "RevCam")
+plyr::count(train_mzd, "PowDoor") # weird some units have power door?
+plyr::count(train_mzd, "ClimaCtrl")
+plyr::count(train_mzd, "Light")
+
+colnames(train_mzd) == colnames(test_mzd)
+colnames(train_mzd)
+str(train_mzd)
+
+# Mazda: SVM --------------------------------------------------------------
+
+system.time(tune_radial_mzd <- tune(svm, Modelvar ~ ., data = train_mzd[,-c(1:3, 4:5, 8, 19)],
+                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 700 obs, 20-6 variables
+# user  system elapsed 
+# 23.23    0.01   23.51
+
+tune_radial_mzd$best.parameters
+
+# incl. manf yr, CC cost=10, gamma=0.1
+
+# Model Group NA
+svm_mzd = svm(Modelvar ~., data = train_mzd[,-c(1:3, 4:5, 8, 19)],
+               kernel="radial", cost=tune_radial_mzd$best.parameters$cost,
+               gamma=tune_radial_mzd$best.parameters$gamma, trace=F
+)
+
+svm_est_mzd = predict(svm_mzd, newdata=test_mzd[,-c(1:3, 4:5, 8, 19)])
+
+1-sum(test_mzd[,6]==svm_est_mzd)/nrow(test_mzd)
+
+# Error info:
+# 23% (incl MfgYr, CC) excl Model Group
+
+mzd_tbl = table(test_mzd[,6], svm_est_mzd)
+write.csv(mzd_tbl,"mzd.csv")
+
+# Ford: prep data  --------------------------------------------------------------------
+
+train_ford = dplyr::filter(training_data, Brand=="Ford")
+head(plyr::count(train_ford$Modelvar))
+
+test_ford = dplyr::filter(testing_data, Brand=="Ford" & 
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_ford$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_ford$Modelvar = as.factor(toupper(trimws(train_ford$Modelvar)))
+test_ford$Modelvar = as.factor(toupper(trimws(test_ford$Modelvar)))
+
+plyr::count(train_ford$CC_adj)
+plyr::count(test_ford$CC_adj)
+
+train_ford$CC_scl = as.numeric(scale(train_ford$CC_adj))
+test_ford$CC_scl = as.numeric(scale(test_ford$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_ford = train_ford %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_ford = test_ford %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_ford = droplevels(train_ford)
+test_ford = droplevels(test_ford)
+
+# standardize Variant levels
+ford_var = unique(c(levels(train_ford$Modelvar),levels(test_ford$Modelvar)))
+train_ford$Modelvar = factor(train_ford$Modelvar, levels = ford_var)
+test_ford$Modelvar = factor(test_ford$Modelvar, levels = ford_var)
+summary(train_ford$Modelvar)
+summary(test_ford$Modelvar)
+
+# standardize Model levels
+ford_mdl = unique(levels(train_ford$Model),levels(test_ford$Model))
+train_ford$Model = factor(train_ford$Model, levels = ford_mdl)
+test_ford$Model = factor(test_ford$Model, levels = ford_mdl)
+
+summary(train_ford$Model)
+test_ford = dplyr::filter(test_ford, !is.na(Model))
+summary(test_ford$Model)
+
+
+# standardize MfgYr levels
+ford_yr = unique(levels(train_ford$MfgYr), levels(test_ford$MfgYr))
+train_ford$MfgYr = factor(train_ford$MfgYr, levels = ford_yr)
+test_ford$MfgYr = factor(test_ford$MfgYr, levels = ford_yr)
+
+summary(train_ford$MfgYr)
+summary(test_ford$MfgYr)
+
+
+# Ford: identify predictors -----------------------------------------------
+
+plyr::count(train_ford, "Transm")
+plyr::count(train_ford, "Airbag")
+plyr::count(train_ford, "Leather")
+plyr::count(train_ford, "Nav")
+plyr::count(train_ford, "ABS")
+plyr::count(train_ford, "SportRims")
+plyr::count(train_ford, "RevCam")
+plyr::count(train_ford, "PowDoor") # weird some units have power door?
+plyr::count(train_ford, "ClimaCtrl")
+plyr::count(train_ford, "Light")
+
+colnames(train_ford) == colnames(test_ford)
+colnames(train_ford)
+str(train_ford)
+
+# Ford: SVM ---------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_ford <- tune(svm, Modelvar ~ ., data = train_ford[,-c(1:2, 4:5, 8, 19)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 700 obs, 20-6 variables
+# user  system elapsed 
+# 23.23    0.01   23.51
+
+tune_radial_ford$best.parameters
+
+# incl. manf yr, CC cost=100, gamma=0.1
+
+svm_ford = svm(Modelvar ~., data = train_ford[,-c(1:2, 4:5, 8, 19)],
+              kernel="radial", cost=tune_radial_ford$best.parameters$cost,
+              gamma=tune_radial_ford$best.parameters$gamma, trace=F
+)
+
+svm_est_ford = predict(svm_ford, newdata=test_ford[,-c(1:2, 4:5, 8, 19)])
+
+1-sum(test_ford[,6]==svm_est_ford)/nrow(test_ford)
+
+# Error info:
+# 15% (incl MfgYr, CC)
+
+ford_tbl = table(test_ford[,6], svm_est_ford)
+write.csv(ford_tbl,"ford.csv")
+
+# Mitsubishi: prep data ---------------------------------------------------------
+
+train_mit = dplyr::filter(training_data, Brand=="Mitsubishi")
+head(plyr::count(train_mit$Modelvar))
+
+test_mit = dplyr::filter(testing_data, Brand=="Mitsubishi" & 
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_mit$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_mit$Modelvar = as.factor(toupper(trimws(train_mit$Modelvar)))
+test_mit$Modelvar = as.factor(toupper(trimws(test_mit$Modelvar)))
+
+plyr::count(train_mit$CC_adj)
+plyr::count(test_mit$CC_adj)
+
+train_mit$CC_scl = as.numeric(scale(train_mit$CC_adj))
+test_mit$CC_scl = as.numeric(scale(test_mit$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_mit = train_mit %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_mit = test_mit %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_mit = droplevels(train_mit)
+test_mit = droplevels(test_mit)
+
+# standardize Variant levels
+mit_var = unique(c(levels(train_mit$Modelvar),levels(test_mit$Modelvar)))
+train_mit$Modelvar = factor(train_mit$Modelvar, levels = mit_var)
+test_mit$Modelvar = factor(test_mit$Modelvar, levels = mit_var)
+summary(train_mit$Modelvar)
+summary(test_mit$Modelvar)
+
+# standardize Model levels
+mit_mdl = unique(levels(train_mit$Model),levels(test_mit$Model))
+train_mit$Model = factor(train_mit$Model, levels = mit_mdl)
+test_mit$Model = factor(test_mit$Model, levels = mit_mdl)
+
+summary(train_mit$Model)
+test_mit = dplyr::filter(test_mit, !is.na(Model))
+summary(test_mit$Model)
+
+
+# standardize MfgYr levels
+mit_yr = unique(levels(train_mit$MfgYr), levels(test_mit$MfgYr))
+train_mit$MfgYr = factor(train_mit$MfgYr, levels = mit_yr)
+test_mit$MfgYr = factor(test_mit$MfgYr, levels = mit_yr)
+
+summary(train_mit$MfgYr)
+summary(test_mit$MfgYr)
+
+# Mitsubishi: identify predictors -----------------------------------------
+
+plyr::count(train_mit, "Transm")
+plyr::count(train_mit, "Airbag")
+plyr::count(train_mit, "Leather")
+plyr::count(train_mit, "Nav")
+plyr::count(train_mit, "ABS")
+plyr::count(train_mit, "SportRims")
+plyr::count(train_mit, "RevCam")
+plyr::count(train_mit, "PowDoor") # weird some units have power door?
+plyr::count(train_mit, "ClimaCtrl")
+plyr::count(train_mit, "Light")
+
+colnames(train_mit) == colnames(test_mit)
+colnames(train_mit)
+str(train_mit)
+
+library(e1071)
+system.time(tune_radial_mit <- tune(svm, Modelvar ~ ., data = train_mit[,-c(1:2, 4:5, 8, 19)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 932 obs, 20-6 variables
+# user  system elapsed 
+# 41.31    0.16   42.37 
+
+tune_radial_mit$best.parameters
+
+# incl. manf yr, CC cost=10, gamma=0.1
+
+svm_mit = svm(Modelvar ~., data = train_mit[,-c(1:2, 4:5, 8, 19)],
+              kernel="radial", cost=tune_radial_mit$best.parameters$cost,
+              gamma=tune_radial_mit$best.parameters$gamma, trace=F
+)
+
+svm_est_mit = predict(svm_mit, newdata=test_mit[,-c(1:2, 4:5, 8, 19)])
+
+1-sum(test_mit[,6]==svm_est_mit)/nrow(test_mit)
+
+# Error info:
+# 7.7% (incl MfgYr, CC)
+
+mit_tbl = table(test_mit[,6], svm_est_mit)
+write.csv(mit_tbl,"mit.csv")
+
+# Kia: All ----------------------------------------------------------------
+
+train_kia = dplyr::filter(training_data, Brand=="Kia")
+head(plyr::count(train_kia$Modelvar))
+
+test_kia = dplyr::filter(testing_data, Brand=="Kia" & 
+                          !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_kia$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_kia$Modelvar = as.factor(toupper(trimws(train_kia$Modelvar)))
+test_kia$Modelvar = as.factor(toupper(trimws(test_kia$Modelvar)))
+
+plyr::count(train_kia$CC_adj)
+plyr::count(test_kia$CC_adj)
+
+train_kia$CC_scl = as.numeric(scale(train_kia$CC_adj))
+test_kia$CC_scl = as.numeric(scale(test_kia$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_kia = train_kia %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_kia = test_kia %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_kia = droplevels(train_kia)
+test_kia = droplevels(test_kia)
+
+# standardize Variant levels
+kia_var = unique(c(levels(train_kia$Modelvar),levels(test_kia$Modelvar)))
+train_kia$Modelvar = factor(train_kia$Modelvar, levels = kia_var)
+test_kia$Modelvar = factor(test_kia$Modelvar, levels = kia_var)
+summary(train_kia$Modelvar)
+summary(test_kia$Modelvar)
+
+# standardize Model levels
+kia_mdl = unique(levels(train_kia$Model),levels(test_kia$Model))
+train_kia$Model = factor(train_kia$Model, levels = kia_mdl)
+test_kia$Model = factor(test_kia$Model, levels = kia_mdl)
+
+summary(train_kia$Model)
+summary(test_kia$Model)
+
+# standardize MfgYr levels
+kia_yr = unique(levels(train_kia$MfgYr), levels(test_kia$MfgYr))
+train_kia$MfgYr = factor(train_kia$MfgYr, levels = kia_yr)
+test_kia$MfgYr = factor(test_kia$MfgYr, levels = kia_yr)
+
+summary(train_kia$MfgYr)
+summary(test_kia$MfgYr)
+
+# Kia: identify predictors ------------------------------------------------
+
+plyr::count(train_kia, "Transm")
+plyr::count(train_kia, "Airbag")
+plyr::count(train_kia, "Leather")
+plyr::count(train_kia, "Nav")
+plyr::count(train_kia, "ABS")
+plyr::count(train_kia, "SportRims")
+plyr::count(train_kia, "RevCam")
+plyr::count(train_kia, "PowDoor") # weird some units have power door?
+plyr::count(train_kia, "ClimaCtrl")
+plyr::count(train_kia, "Light")
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_kia = train_kia[, !names(train_kia) %in% drops]
+test_kia = test_kia[, !names(test_kia) %in% drops]
+
+colnames(train_kia) == colnames(test_kia)
+colnames(train_kia)
+str(train_kia)
+
+
+# Kia: SVM ----------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_kia <- tune(svm, Modelvar ~ ., data = train_kia[,-c(1:2, 4:5, 17)],
+                                   kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 1,213 obs, 19-5 variables
+# user  system elapsed 
+# 71.20    0.05   72.37
+
+tune_radial_kia$best.parameters
+
+# incl. manf yr, CC cost=100, gamma=0.1
+
+svm_kia = svm(Modelvar ~., data = train_kia[,-c(1:2, 4:5, 17)],
+             kernel="radial", cost=tune_radial_kia$best.parameters$cost,
+             gamma=tune_radial_kia$best.parameters$gamma, trace=F
+)
+
+svm_est_kia = predict(svm_kia, newdata=test_kia[,-c(1:2, 4:5, 17)])
+
+1-sum(test_kia[,6]==svm_est_kia)/nrow(test_kia)
+
+# Error info:
+# 2.9% (incl MfgYr, CC)
+
+kia_tbl = table(test_kia[,6], svm_est_kia)
+write.csv(kia_tbl,"kia.csv")
+
+# Hyundai: All ------------------------------------------------------------
+
+train_hy = dplyr::filter(training_data, Brand=="Hyundai")
+head(plyr::count(train_hy$Modelvar))
+
+test_hy = dplyr::filter(testing_data, Brand=="Hyundai" & 
+                          !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_hy$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_hy$Modelvar = as.factor(toupper(trimws(train_hy$Modelvar)))
+test_hy$Modelvar = as.factor(toupper(trimws(test_hy$Modelvar)))
+
+plyr::count(train_hy$CC_adj)
+plyr::count(test_hy$CC_adj)
+
+train_hy$CC_scl = as.numeric(scale(train_hy$CC_adj))
+test_hy$CC_scl = as.numeric(scale(test_hy$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_hy = train_hy %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_hy = test_hy %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_hy = droplevels(train_hy)
+test_hy = droplevels(test_hy)
+
+# standardize Variant levels
+hy_var = unique(c(levels(train_hy$Modelvar),levels(test_hy$Modelvar)))
+train_hy$Modelvar = factor(train_hy$Modelvar, levels = hy_var)
+test_hy$Modelvar = factor(test_hy$Modelvar, levels = hy_var)
+summary(train_hy$Modelvar)
+summary(test_hy$Modelvar)
+
+# standardize Model levels
+hy_mdl = unique(levels(train_hy$Model),levels(test_hy$Model))
+train_hy$Model = factor(train_hy$Model, levels = hy_mdl)
+test_hy$Model = factor(test_hy$Model, levels = hy_mdl)
+
+summary(train_hy$Model)
+summary(test_hy$Model)
+
+# standardize MfgYr levels
+hy_yr = unique(levels(train_hy$MfgYr), levels(test_hy$MfgYr))
+train_hy$MfgYr = factor(train_hy$MfgYr, levels = hy_yr)
+test_hy$MfgYr = factor(test_hy$MfgYr, levels = hy_yr)
+
+summary(train_hy) # check for NAs
+summary(test_hy) # check for NAs
+
+# Hyundai: identify predictors --------------------------------------------
+
+plyr::count(train_hy, "Transm")
+plyr::count(train_hy, "Airbag")
+plyr::count(train_hy, "Leather")
+plyr::count(train_hy, "Nav")
+plyr::count(train_hy, "ABS")
+plyr::count(train_hy, "SportRims")
+plyr::count(train_hy, "RevCam")
+plyr::count(train_hy, "PowDoor") # weird some units have power door?
+plyr::count(train_hy, "TouchScreen") # all N/A
+plyr::count(train_hy, "ClimaCtrl")
+
+test_search = grepl("leather", test_hy$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_hy$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_hy = train_hy[, !names(train_hy) %in% drops]
+test_hy = test_hy[, !names(test_hy) %in% drops]
+
+leather_hyTr = grepl("leather", train_hy$Features, ignore.case=TRUE)
+leather_hyTt = grepl("leather", test_hy$Features, ignore.case=TRUE)
+
+light_hyTr = grepl("light", train_hy$Features, ignore.case=TRUE)
+light_hyTt = grepl("light", test_hy$Features, ignore.case=TRUE)
+
+train_hy$Leather = leather_hyTr
+test_hy$Leather = leather_hyTt
+
+train_hy$Light = light_hyTr
+test_hy$Light = light_hyTt
+
+colnames(train_hy) == colnames(test_hy)
+
+colnames(train_hy)
+str(train_hy)
+
+# Hyundai: SVM ------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_hy <- tune(svm, Modelvar ~ ., data = train_hy[,-c(1:2, 4:5, 17)],
+                                   kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 1,636 obs, 19-5 variables
+# user  system elapsed 
+# 161.22    0.15  167.92 ~2.7 min
+
+tune_radial_hy$best.parameters
+
+# incl. manf yr, CC cost=100, gamma=0.1
+
+svm_hy = svm(Modelvar ~., data = train_hy[,-c(1:2, 4:5, 17)],
+             kernel="radial", cost=tune_radial_hy$best.parameters$cost,
+             gamma=tune_radial_hy$best.parameters$gamma, trace=F
+)
+
+svm_est_hy = predict(svm_hy, newdata=test_hy[,-c(1:2, 4:5, 17)])
+
+1-sum(test_hy[,6]==svm_est_hy)/nrow(test_hy)
+
+# Error info:
+# 0.4% (incl MfgYr, CC)
+
+hy_tbl = table(test_hy[,6], svm_est_hy)
+write.csv(hy_tbl,"hy.csv")
+
+# VW: All -----------------------------------------------------------------
+
+train_vw = dplyr::filter(training_data, Brand=="Volkswagen")
+head(plyr::count(train_vw$Modelvar))
+
+test_vw = dplyr::filter(testing_data, Brand=="Volkswagen" & 
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_vw$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_vw$Modelvar = as.factor(toupper(trimws(train_vw$Modelvar)))
+test_vw$Modelvar = as.factor(toupper(trimws(test_vw$Modelvar)))
+
+plyr::count(train_vw$CC_adj)
+plyr::count(test_vw$CC_adj)
+
+train_vw$CC_scl = as.numeric(scale(train_vw$CC_adj))
+test_vw$CC_scl = as.numeric(scale(test_vw$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_vw = train_vw %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_vw = test_vw %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_vw = droplevels(train_vw)
+test_vw = droplevels(test_vw)
+
+# standardize Variant levels
+vw_var = unique(c(levels(train_vw$Modelvar),levels(test_vw$Modelvar)))
+train_vw$Modelvar = factor(train_vw$Modelvar, levels = vw_var)
+test_vw$Modelvar = factor(test_vw$Modelvar, levels = vw_var)
+summary(train_vw$Modelvar)
+summary(test_vw$Modelvar)
+
+# standardize Model levels
+vw_mdl = unique(levels(train_vw$Model),levels(test_vw$Model))
+train_vw$Model = factor(train_vw$Model, levels = vw_mdl)
+test_vw$Model = factor(test_vw$Model, levels = vw_mdl)
+
+summary(train_vw$Model)
+test_vw = dplyr::filter(test_vw, !is.na(Model))
+summary(test_vw$Model)
+
+# standardize MfgYr levels
+vw_yr = unique(levels(train_vw$MfgYr), levels(test_vw$MfgYr))
+train_vw$MfgYr = factor(train_vw$MfgYr, levels = vw_yr)
+test_vw$MfgYr = factor(test_vw$MfgYr, levels = vw_yr)
+
+summary(train_vw) # check for NAs
+summary(test_vw) # check for NAs
+
+
+# VW: identify predictors -------------------------------------------------
+
+plyr::count(train_vw, "Transm") # no manual
+plyr::count(train_vw, "Airbag")
+plyr::count(train_vw, "Leather")
+plyr::count(train_vw, "Nav")
+plyr::count(train_vw, "ABS")
+plyr::count(train_vw, "SportRims")
+plyr::count(train_vw, "RevCam")
+plyr::count(train_vw, "PowDoor") # weird some units have power door?
+plyr::count(train_vw, "TouchScreen") # all N/A
+plyr::count(train_vw, "ClimaCtrl")
+
+test_search = grepl("leather", test_vw$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_vw$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+# drop non-useful predictors
+drops = c("Transm", "CC", "TouchScreen")
+train_vw = train_vw[, !names(train_vw) %in% drops]
+test_vw = test_vw[, !names(test_vw) %in% drops]
+
+leather_vwTr = grepl("leather", train_vw$Features, ignore.case=TRUE)
+leather_vwTt = grepl("leather", test_vw$Features, ignore.case=TRUE)
+
+light_vwTr = grepl("light", train_vw$Features, ignore.case=TRUE)
+light_vwTt = grepl("light", test_vw$Features, ignore.case=TRUE)
+
+train_vw$Leather = leather_vwTr
+test_vw$Leather = leather_vwTt
+
+train_vw$Light = light_vwTr
+test_vw$Light = light_vwTt
+
+colnames(train_vw) == colnames(test_vw)
+
+colnames(train_vw)
+str(train_vw)
+
+
+# VW: SVM -----------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_vw <- tune(svm, Modelvar ~ ., data = train_vw[,-c(1:2, 4:5, 17)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 1,354 obs, 19-5 variables
+# user  system elapsed 
+# 85.16    0.07   88.73 ~ 1.5 mins
+
+tune_radial_vw$best.parameters
+
+# incl. manf yr, CC cost=10, gamma=0.1
+
+svm_vw = svm(Modelvar ~., data = train_vw[,-c(1:2, 4:5, 17)],
+              kernel="radial", cost=tune_radial_vw$best.parameters$cost,
+              gamma=tune_radial_vw$best.parameters$gamma, trace=F
+)
+
+svm_est_vw = predict(svm_vw, newdata=test_vw[,-c(1:2, 4:5, 17)])
+
+1-sum(test_vw[,6]==svm_est_vw)/nrow(test_vw)
+
+# Error info:
+# 2.5% (incl MfgYr, CC)
+
+vw_tbl = table(test_vw[,6], svm_est_vw)
+write.csv(vw_tbl,"vw.csv")
+
+# Nissan: All -------------------------------------------------------------
+
+train_nis = dplyr::filter(training_data, Brand=="Nissan")
+head(plyr::count(train_nis$Modelvar))
+
+test_nis = dplyr::filter(testing_data, Brand=="Nissan" & 
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_nis$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_nis$Modelvar = as.factor(toupper(trimws(train_nis$Modelvar)))
+test_nis$Modelvar = as.factor(toupper(trimws(test_nis$Modelvar)))
+
+plyr::count(train_nis$CC_adj)
+plyr::count(test_nis$CC_adj)
+
+train_nis$CC_scl = as.numeric(scale(train_nis$CC_adj))
+test_nis$CC_scl = as.numeric(scale(test_nis$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_nis = train_nis %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_nis = test_nis %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_nis = droplevels(train_nis)
+test_nis = droplevels(test_nis)
+
+# standardize Variant levels
+nis_var = unique(c(levels(train_nis$Modelvar),levels(test_nis$Modelvar)))
+train_nis$Modelvar = factor(train_nis$Modelvar, levels = nis_var)
+test_nis$Modelvar = factor(test_nis$Modelvar, levels = nis_var)
+summary(train_nis$Modelvar)
+summary(test_nis$Modelvar)
+
+# standardize Model levels
+nis_mdl = unique(levels(train_nis$Model),levels(test_nis$Model))
+train_nis$Model = factor(train_nis$Model, levels = nis_mdl)
+test_nis$Model = factor(test_nis$Model, levels = nis_mdl)
+
+summary(train_nis$Model)
+test_nis = dplyr::filter(test_nis, !is.na(Model))
+summary(test_nis$Model)
+
+# standardize MfgYr levels
+nis_yr = unique(levels(train_nis$MfgYr), levels(test_nis$MfgYr))
+train_nis$MfgYr = factor(train_nis$MfgYr, levels = nis_yr)
+test_nis$MfgYr = factor(test_nis$MfgYr, levels = nis_yr)
+
+summary(train_nis) # check for NAs
+summary(test_nis) # check for NAs
+
+
+# Nissan: identify predictors ---------------------------------------------
+
+plyr::count(train_nis, "Transm")
+plyr::count(train_nis, "Airbag")
+plyr::count(train_nis, "Leather")
+plyr::count(train_nis, "Nav")
+plyr::count(train_nis, "ABS")
+plyr::count(train_nis, "SportRims")
+plyr::count(train_nis, "RevCam")
+plyr::count(train_nis, "PowDoor") # weird some units have power door?
+plyr::count(train_nis, "TouchScreen") # all N/A
+plyr::count(train_nis, "ClimaCtrl")
+
+test_search = grepl("leather", test_nis$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_nis$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_nis = train_nis[, !names(train_nis) %in% drops]
+test_nis = test_nis[, !names(test_nis) %in% drops]
+
+leather_nisTr = grepl("leather", train_nis$Features, ignore.case=TRUE)
+leather_nisTt = grepl("leather", test_nis$Features, ignore.case=TRUE)
+
+light_nisTr = grepl("light", train_nis$Features, ignore.case=TRUE)
+light_nisTt = grepl("light", test_nis$Features, ignore.case=TRUE)
+
+train_nis$Leather = leather_nisTr
+test_nis$Leather = leather_nisTt
+
+train_nis$Light = light_nisTr
+test_nis$Light = light_nisTt
+
+colnames(train_nis) == colnames(test_nis)
+
+colnames(train_nis)
+str(train_nis)
+
+
+# Nissan: SVM -------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_nis <- tune(svm, Modelvar ~ ., data = train_nis[,-c(1:2, 4:5, 17)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 3,407 obs, 19-5 variables
+# user  system elapsed 
+# 595.82    0.61  613.63 ~10 min
+
+tune_radial_nis$best.parameters
+
+# incl. manf yr, CC cost=10, gamma=0.1
+
+svm_nis = svm(Modelvar ~., data = train_nis[,-c(1:2, 4:5, 17)],
+              kernel="radial", cost=tune_radial_nis$best.parameters$cost,
+              gamma=tune_radial_nis$best.parameters$gamma, trace=F
+)
+
+svm_est_nis = predict(svm_nis, newdata=test_nis[,-c(1:2, 4:5, 17)])
+
+1-sum(test_nis[,6]==svm_est_nis)/nrow(test_nis)
+
+# Error info:
+# 10.2% (incl MfgYr, CC)
+
+nis_tbl = table(test_nis[,6], svm_est_nis)
+write.csv(nis_tbl,"nis.csv")
+
+# Honda: All --------------------------------------------------------------
+
+train_hon = dplyr::filter(training_data, Brand=="Honda")
+head(plyr::count(train_hon$Modelvar))
+
+test_hon = dplyr::filter(testing_data, Brand=="Honda" & 
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_hon$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_hon$Modelvar = as.factor(toupper(trimws(train_hon$Modelvar)))
+test_hon$Modelvar = as.factor(toupper(trimws(test_hon$Modelvar)))
+
+plyr::count(train_hon$CC_adj)
+plyr::count(test_hon$CC_adj)
+
+train_hon$CC_scl = as.numeric(scale(train_hon$CC_adj))
+test_hon$CC_scl = as.numeric(scale(test_hon$CC_adj))
+
+# filter for variants with size > 30
+library(dplyr)
+train_hon = train_hon %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_hon = test_hon %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_hon = droplevels(train_hon)
+test_hon = droplevels(test_hon)
+
+# standardize Variant levels
+hon_var = unique(c(levels(train_hon$Modelvar),levels(test_hon$Modelvar)))
+train_hon$Modelvar = factor(train_hon$Modelvar, levels = hon_var)
+test_hon$Modelvar = factor(test_hon$Modelvar, levels = hon_var)
+
+# standardize Model levels
+hon_mdl = unique(levels(train_hon$Model),levels(test_hon$Model))
+train_hon$Model = factor(train_hon$Model, levels = hon_mdl)
+test_hon$Model = factor(test_hon$Model, levels = hon_mdl)
+
+test_hon = dplyr::filter(test_hon, !is.na(Model))
+summary(test_hon$Model)
+
+# standardize MfgYr levels
+hon_yr = unique(levels(train_hon$MfgYr), levels(test_hon$MfgYr))
+train_hon$MfgYr = factor(train_hon$MfgYr, levels = hon_yr)
+test_hon$MfgYr = factor(test_hon$MfgYr, levels = hon_yr)
+
+summary(train_hon) # check for NAs
+summary(test_hon) # check for NAs
+
+
+# Honda: identify predictors ----------------------------------------------
+
+plyr::count(train_hon, "Transm")
+plyr::count(train_hon, "Airbag")
+plyr::count(train_hon, "Leather")
+plyr::count(train_hon, "Nav")
+plyr::count(train_hon, "ABS")
+plyr::count(train_hon, "SportRims")
+plyr::count(train_hon, "RevCam")
+plyr::count(train_hon, "PowDoor") # weird some units have power door?
+plyr::count(train_hon, "TouchScreen") # all N/A
+plyr::count(train_hon, "ClimaCtrl")
+
+test_search = grepl("leather", test_hon$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_hon$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_hon = train_hon[, !names(train_hon) %in% drops]
+test_hon = test_hon[, !names(test_hon) %in% drops]
+
+leather_honTr = grepl("leather", train_hon$Features, ignore.case=TRUE)
+leather_honTt = grepl("leather", test_hon$Features, ignore.case=TRUE)
+
+light_honTr = grepl("light", train_hon$Features, ignore.case=TRUE)
+light_honTt = grepl("light", test_hon$Features, ignore.case=TRUE)
+
+train_hon$Leather = leather_honTr
+test_hon$Leather = leather_honTt
+
+train_hon$Light = light_honTr
+test_hon$Light = light_honTt
+
+colnames(train_hon) == colnames(test_hon)
+
+colnames(train_hon)
+str(train_hon)
+
+# Honda: SVM --------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_hon <- tune(svm, Modelvar ~ ., data = train_hon[,-c(1:2, 4:5, 17)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 7,300 obs, 19-5 variables
+# user  system elapsed 
+# 3823.87    7.60 4094.31 ~68
+
+tune_radial_hon$best.parameters
+
+# incl. manf yr, CC cost=10, gamma=0.1
+
+svm_hon = svm(Modelvar ~., data = train_hon[,-c(1:2, 4:5, 17)],
+              kernel="radial", cost=tune_radial_hon$best.parameters$cost,
+              gamma=tune_radial_hon$best.parameters$gamma, trace=F
+)
+
+svm_est_hon = predict(svm_hon, newdata=test_hon[,-c(1:2, 4:5, 17)])
+
+1-sum(test_hon[,6]==svm_est_hon)/nrow(test_hon)
+
+# Error info:
+# 17.4% (incl MfgYr, CC)
+
+hon_tbl = table(test_hon[,6], svm_est_hon)
+write.csv(hon_tbl,"hon.csv")
+
+# Toyota: All -------------------------------------------------------------
+train_tyt = dplyr::filter(training_data, Brand=="Toyota")
+head(plyr::count(train_tyt$Modelvar))
+
+test_tyt = dplyr::filter(testing_data, Brand=="Toyota" & 
+                               !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_tyt$Modelvar))
+
+# clean up spaces / upper-lower char and re-factor
+train_tyt$Modelvar = as.factor(toupper(trimws(train_tyt$Modelvar)))
+test_tyt$Modelvar = as.factor(toupper(trimws(test_tyt$Modelvar)))
+
+plyr::count(train_tyt$Modelvar)
+plyr::count(test_tyt$Modelvar)
+
+plyr::count(train_tyt$CC_adj)
+plyr::count(test_tyt$CC_adj)
+
+train_tyt$CC_scl = as.numeric(scale(train_tyt$CC_adj))
+test_tyt$CC_scl = as.numeric(scale(test_tyt$CC_adj))
+
+# filter for variants with size > 30
+train_tyt = train_tyt %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_tyt = test_tyt %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_tyt = droplevels(train_tyt)
+test_tyt = droplevels(test_tyt)
+
+# standardize Variant levels
+tyt_var = unique(c(levels(train_tyt$Modelvar),levels(test_tyt$Modelvar)))
+train_tyt$Modelvar = factor(train_tyt$Modelvar, levels = tyt_var)
+test_tyt$Modelvar = factor(test_tyt$Modelvar, levels = tyt_var)
+
+# standardize Model levels
+tyt_mdl = unique(levels(train_tyt$Model),levels(test_tyt$Model))
+train_tyt$Model = factor(train_tyt$Model, levels = tyt_mdl)
+test_tyt$Model = factor(test_tyt$Model, levels = tyt_mdl)
+
+# standardize MfgYr levels
+tyt_yr = unique(levels(train_tyt$MfgYr), levels(test_tyt$MfgYr))
+train_tyt$MfgYr = factor(train_tyt$MfgYr, levels = tyt_yr)
+test_tyt$MfgYr = factor(test_tyt$MfgYr, levels = tyt_yr)
+
+
+summary(train_tyt) # check for NAs
+summary(test_tyt) # check for NAs
+
+
+# Toyota: identify predictors ---------------------------------------------
+
+plyr::count(train_tyt, "Transm")
+plyr::count(train_tyt, "CC")
+plyr::count(train_tyt, "Airbag")
+plyr::count(train_tyt, "Leather")
+plyr::count(train_tyt, "Nav")
+plyr::count(train_tyt, "ABS")
+plyr::count(train_tyt, "SportRims")
+plyr::count(train_tyt, "RevCam")
+plyr::count(train_tyt, "PowDoor") # weird some units have power door?
+plyr::count(train_tyt, "TouchScreen") # all N/A
+plyr::count(train_tyt, "ClimaCtrl")
+
+test_search = grepl("leather", test_tyt$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_tyt$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_tyt = train_tyt[, !names(train_tyt) %in% drops]
+test_tyt = test_tyt[, !names(test_tyt) %in% drops]
+
+leather_tytTr = grepl("leather", train_tyt$Features, ignore.case=TRUE)
+leather_tytTt = grepl("leather", test_tyt$Features, ignore.case=TRUE)
+
+light_tytTr = grepl("light", train_tyt$Features, ignore.case=TRUE)
+light_tytTt = grepl("light", test_tyt$Features, ignore.case=TRUE)
+
+train_tyt$Leather = leather_tytTr
+test_tyt$Leather = leather_tytTt
+
+train_tyt$Light = light_tytTr
+test_tyt$Light = light_tytTt
+
+colnames(train_tyt) == colnames(test_tyt)
+
+colnames(train_tyt)
+str(train_tyt)
+
+# SVM: Toyota -------------------------------------------------------------
+
+library(e1071)
+system.time(tune_radial_tyt <- tune(svm, Modelvar ~ ., data = train_tyt[,-c(1:2, 4:5, 17)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 11,400 obs, 19-5 variables
+# user  system elapsed 
+# 6086.24   18.04 6198.82 ~103
+
+# 11,400 obs, 17-5 variables
+# user  system elapsed 
+# 5827.84   15.63 6342.66 ~105
+
+tune_radial_tyt$best.parameters
+
+# excl. manf yr, CC cost=10, gamma=0.1
+
+svm_tyt = svm(Modelvar ~., data = train_tyt[,-c(1:2, 4:5, 17)],
+             kernel="radial", cost=tune_radial_tyt$best.parameters$cost,
+             gamma=tune_radial_tyt$best.parameters$gamma, trace=F
+)
+
+
+
+svm_est_tyt = predict(svm_tyt, newdata=test_tyt[,-c(1:2, 4:5, 17)])
+
+1-sum(test_tyt[,6]==svm_est_tyt)/nrow(test_tyt)
+
+# Error info:
+# 17.4% (incl MfgYr, CC)
+# 30.4% (excl MfgYr, CC)
+
+tyt_tbl = table(test_tyt[,6], svm_est_tyt)
+write.csv(tyt_tbl,"tyt.csv")
+
+
+# Perodua: All ------------------------------------------------------------
+train_perodua = dplyr::filter(training_data, Brand=="Perodua")
+head(plyr::count(train_perodua$Modelvar))
+
+test_perodua = dplyr::filter(testing_data, Brand=="Perodua" & 
+                              !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_perodua$Modelvar))
+
+train_perodua$Modelvar = as.character(train_perodua$Modelvar)
+test_perodua$Modelvar = as.character(test_perodua$Modelvar)
+
+# clean up spaces / upper-lower char and re-factor
+train_perodua$Modelvar = as.factor(toupper(trimws(train_perodua$Modelvar)))
+test_perodua$Modelvar = as.factor(toupper(trimws(test_perodua$Modelvar)))
+
+plyr::count(train_perodua$Modelvar)
+plyr::count(test_perodua$Modelvar)
+
+# filter for variants with size > 30
+train_perodua = train_perodua %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_perodua = test_perodua %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_perodua = droplevels(train_perodua)
+test_perodua = droplevels(test_perodua)
+
+p2_lvl = unique(c(levels(train_perodua$Modelvar),levels(test_perodua$Modelvar)))
+train_perodua$Modelvar = factor(train_perodua$Modelvar, levels = p2_lvl)
+test_perodua$Modelvar = factor(test_perodua$Modelvar, levels = p2_lvl)
+
+plyr::count(train_perodua$CC_adj)
+train_perodua = dplyr::filter(train_perodua, CC_adj <= 1600) # alternative filter out data with low obs
+train_perodua$CC_scl = scale(train_perodua$CC_adj)
+
+plyr::count(test_perodua$Modelvar)
+test_perodua = dplyr::filter(test_perodua, CC_adj <= 1600) # alternative filter out data with low obs
+test_perodua$CC_scl = scale(test_perodua$CC_adj)
+test_perodua$CC_scl = as.numeric(test_perodua$CC_scl)
+
+summary(train_perodua) # check for NAs
+summary(test_perodua) # check for NAs
+
+# P2: Identify predictors-----------------------------------------------------
+
+plyr::count(train_perodua, "Transm") # filtered for autos
+plyr::count(train_perodua, "CC") # 3 different ways of CC Groups: 12-20, 1000-2000, >10000
+plyr::count(train_perodua, "Airbag")
+plyr::count(train_perodua, "Leather")
+plyr::count(train_perodua, "Nav")
+plyr::count(train_perodua, "ABS")
+plyr::count(train_perodua, "SportRims")
+plyr::count(train_perodua, "RevCam")
+plyr::count(train_perodua, "PowDoor") # weird some units have power door?
+plyr::count(train_perodua, "TouchScreen") # all N/A
+plyr::count(train_perodua, "ClimaCtrl")
+
+test_search = grepl("leather", test_perodua$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_perodua$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_perodua = train_perodua[, !names(train_perodua) %in% drops]
+test_perodua = test_perodua[, !names(test_perodua) %in% drops]
+
+# add extra predictors
+leather_p2Tr = grepl("leather", train_perodua$Features, ignore.case=TRUE)
+leather_p2Tt = grepl("leather", test_perodua$Features, ignore.case=TRUE)
+
+light_p2Tr = grepl("light", train_perodua$Features, ignore.case=TRUE)
+light_p2Tt = grepl("light", test_perodua$Features, ignore.case=TRUE)
+
+train_perodua$Leather = leather_p2Tr
+test_perodua$Leather = leather_p2Tt
+
+train_perodua$Light = light_p2Tr
+test_perodua$Light = light_p2Tt
+
+colnames(train_perodua) == colnames(test_perodua)
+
+colnames(train_perodua)
+
+str(train_perodua)
+
+
+# P2: SVM -----------------------------------------------------------------
+
+library(e1071)
+system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = train_perodua[,-c(1:2, 4:5, 17)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 9400 obs, 19-5 variables
+# user  system elapsed 
+# 3655.37    7.22 3680.47  ~61 mins
+
+# 9400 obs, 17-5 variables
+# user  system elapsed 
+# 3140.10    8.92 3261.57 ~54 mins
+
+svm_tune_radial$best.parameters
+
+# excl. manf yr, CC cost=10, gamma=0.1
+
+svm_p2 = svm(Modelvar ~., data = train_perodua[,-c(1:2, 4:5, 17)],
+                 kernel="radial", cost=svm_tune_radial$best.parameters$cost,
+                 gamma=svm_tune_radial$best.parameters$gamma, trace=F
+)
+
+
+svm_p2_est = predict(svm_p2, newdata=test_perodua[,-c(1:2, 4:5, 17)])
+
+1-sum(test_perodua[,6]==svm_p2_est)/nrow(test_perodua)
+
+# Error info:
+# 20% (incl MfgYr, CC)
+# 37% (excl MfgYr, CC)
+
+p2_tbl = table(test_perodua[,6], svm_p2_est)
+write.csv(p2_tbl,"p2.csv")
+
+
+# Proton: All -------------------------------------------------------------
+
+# Note: Check for NAs in data first
+train_proton = dplyr::filter(training_data, Brand=="Proton")
+plyr::count(train_proton$Modelvar)
+
+test_proton = dplyr::filter(testing_data, Brand=="Proton" & 
+                              !Modelvar %in% c('', '-', '0', '#N/A'))
+head(plyr::count(test_proton$Modelvar))
+
+train_proton$Modelvar = as.character(train_proton$Modelvar)
+test_proton$Modelvar = as.character(test_proton$Modelvar)
+
+# clean up spaces / upper-lower char and re-factor
+train_proton$Modelvar = as.factor(toupper(trimws(train_proton$Modelvar)))
+test_proton$Modelvar = as.factor(toupper(trimws(test_proton$Modelvar)))
+
+plyr::count(train_proton$Modelvar)
+plyr::count(test_proton$Modelvar)
+
+# filter for variants with size > 30
+train_proton = train_proton %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+test_proton = test_proton %>% 
+  group_by(Modelvar) %>%
+  filter(n()>30) %>%
+  as.data.frame()
+
+train_proton = droplevels(train_proton)
+test_proton = droplevels(test_proton)
+
+proton_lvl = unique(c(levels(train_proton$Modelvar),levels(test_proton$Modelvar)))
+train_proton$Modelvar = factor(train_proton$Modelvar, levels = proton_lvl)
+test_proton$Modelvar = factor(test_proton$Modelvar, levels = proton_lvl)
+
+all.equal.factor(train_proton$Modelvar, test_proton$Modelvar)
+
+# standardize models
+proton_mdl = unique(levels(train_proton$Model), levels(test_proton$Model))
+train_proton$Model = factor(train_proton$Model, levels = proton_mdl)
+test_proton$Model = factor(test_proton$Model, levels = proton_mdl)
+
+train_proton$CC_scl = scale(train_proton$CC_adj)
+test_proton$CC_scl = scale(test_proton$CC_adj)
+
+
+# Identify predictors: Proton All ---------------------------------------------------------
+
+# Identify useful predictors
+plyr::count(train_proton, "Transm") # filtered for autos
+plyr::count(train_proton, "CC") # 3 different ways of CC Groups: 12-20, 1000-2000, >10000
+plyr::count(train_proton, "Airbag")
+plyr::count(train_proton, "Leather")
+plyr::count(train_proton, "Nav")
+plyr::count(train_proton, "ABS")
+plyr::count(train_proton, "SportRims")
+plyr::count(train_proton, "RevCam")
+plyr::count(train_proton, "PowDoor")
+plyr::count(train_proton, "TouchScreen") # all N/A
+plyr::count(train_proton, "ClimaCtrl")
+
+test_search = grepl("leather", test_proton$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+test_search = grepl("light", test_proton$Features, ignore.case=TRUE)
+plyr::count(test_search) # OK
+
+# drop non-useful predictors
+drops = c("CC", "TouchScreen")
+train_proton = train_proton[, !names(train_proton) %in% drops]
+test_proton = test_proton[, !names(test_proton) %in% drops]
+
+leather_protonTr = grepl("leather", train_proton$Features, ignore.case=TRUE)
+leather_protonTt = grepl("leather", test_proton$Features, ignore.case=TRUE)
+
+light_protonTr = grepl("light", train_proton$Features, ignore.case=TRUE)
+light_protonTt = grepl("light", test_proton$Features, ignore.case=TRUE)
+
+train_proton$Leather = leather_protonTr
+test_proton$Leather = leather_protonTt
+
+train_proton$Light = light_protonTr
+test_proton$Light = light_protonTt
+
+colnames(train_proton) == colnames(test_proton)
+
+colnames(train_proton)
+str(train_proton)
+
+# SVM: Proton All ---------------------------------------------------------
+
+
+
+colnames(train_proton)
+library(e1071)
+system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = train_proton[,-c(1:2, 4:5, 17)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 10,000 obs, (19-5) var
+# user  system elapsed 
+# 8450.45   21.45 8853.12 ~147 mins
+
+# 10,000 obs, (17-5) var
+# user  system elapsed 
+# 5458.87   17.33 6132.82 ~102 mins
+svm_tune_radial$best.parameters 
+
+# excl. manf yr, CC cost=10, gamma=0.1 
+
+svm_proton = svm(Modelvar ~., data = train_proton[,-c(1:2, 4:5, 17)],
+                 kernel="radial", cost=svm_tune_radial$best.parameters$cost,
+                 gamma=svm_tune_radial$best.parameters$gamma, trace=F
+)
+
+
+sum(is.na(test_proton)) # 963 NAs
+summary(test_proton) # 963 NAs located at Model
+str(test_proton)
+
+test_proton$CC_scl = as.numeric(test_proton$CC_scl) # convert list to 1d vectors
+test_proton_f = dplyr::filter(test_proton, !is.na(Model))
+summary(test_proton_f)
+
+svm_proton_est = predict(svm_proton, newdata=test_proton_f[,-c(1:2, 4:5, 17)])
+
+1-sum(test_proton_f[,6]==svm_proton_est)/nrow(test_proton_f)
+
+# Error info:
+# 16% (incl MfgYr, CC)
+# 32% (took out NAs in Model, excl MfgYr, CC)
+
+proton_tbl = table(test_proton_f[,6], svm_proton_est)
+write.csv(proton_tbl,"proton.csv")
 
 
 # Case: Myvi Auto --------------------------------------------------------------
