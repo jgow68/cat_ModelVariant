@@ -2,25 +2,22 @@
 
 # Read data from csv ------------------------------------------------------
 
-
 setwd("~/Github Folder/cat_ModelVariant")
 
 # form training df
-data1 = read.csv("Testset_Feb18_V1.csv")
-data2 = read.csv('Trainingset_Jan18_V1.csv')
-data3 = read.csv('Dec17_V1.csv')
-data4 = read.csv('Nov17_V3.csv')
+data1 = read.csv('May18_V2.csv')
+data2 = read.csv('Apr18_V2.csv')
+#data3 = read.csv('Mar18_V1.csv')
+
+# data1 = read.csv("Feb18_V1.csv")
+# data2 = read.csv('Jan18_V1.csv')
+# data3 = read.csv('Dec17_V1.csv')
+# data4 = read.csv('Nov17_V3.csv')
 
 # form testing df
 
-verify_data = read.csv("Testset_Mar18_V1.csv")
-str(verify_data)
-
-with(verify_data, mean(Price,na.rm = TRUE))
-
-summary(verify_data$Price)
-
-
+verify_data = read.csv("Jun18_V2.csv")
+# verify_data = read.csv("Mar18_V1.csv")
 
 # search Features for key words and form a new column to merge with dataframe
 data1$Features = as.character(data1$Features)
@@ -34,31 +31,43 @@ data1$Airbag = grepl("Airbag", data1$Features)
 data1$Leather = grepl("Leather", data1$Features)
 data1$Nav = grepl("Nav", data1$Features)
 data1$ABS = grepl("ABS", data1$Features)
-data1$Sport.Rim = grepl("Sport rim", data1$Features) # no features extracted, consider remove
-data1$Reverse.Camera = grepl("Reverse camera", data1$Features) # no features extracted, consider remove
+data1$Sport.Rim = grepl("Sport rim", data1$Features)
+data1$Reverse.Camera = grepl("Reverse camera", data1$Features)
 data1$Power.Door = grepl("Power Door", data1$Features)
-data1$Climate.Control = grepl("Climate control", data1$Features) # no features extracted, consider remove
+data1$Climate.Control = grepl("Climate control", data1$Features)
 data1$Light = grepl("Light", data1$Features)
+
+# Data 2 Search
+data2$Airbag = grepl("Airbag", data2$Features)
+data2$Leather = grepl("Leather", data2$Features)
+data2$Nav = grepl("Nav", data2$Features)
+data2$ABS = grepl("ABS", data2$Features)
+data2$Sport.Rim = grepl("Sport rim", data2$Features)
+data2$Reverse.Camera = grepl("Reverse camera", data2$Features)
+data2$Power.Door = grepl("Power Door", data2$Features)
+data2$Climate.Control = grepl("Climate control", data2$Features)
+data2$Light = grepl("Light", data2$Features)
 
 # Data 3 Search
 data3$Airbag = grepl("Airbag", data3$Features)
 data3$Leather = grepl("Leather", data3$Features)
 data3$Nav = grepl("Nav", data3$Features)
 data3$ABS = grepl("ABS", data3$Features)
-data3$Sport.Rim = grepl("Sport rim", data3$Features) # no features extracted, consider remove
-data3$Reverse.Camera = grepl("Reverse camera", data3$Features) # no features extracted, consider remove
+data3$Sport.Rim = grepl("Sport rim", data3$Features)
+data3$Reverse.Camera = grepl("Reverse camera", data3$Features)
 data3$Power.Door = grepl("Power Door", data3$Features)
-data3$Climate.Control = grepl("Climate control", data3$Features) # no features extracted, consider remove
+data3$Climate.Control = grepl("Climate control", data3$Features)
 data3$Light = grepl("Light", data3$Features)
 
+# Data 4 Search
 data4$Airbag = grepl("Airbag", data4$Features)
 data4$Leather = grepl("Leather", data4$Features)
 data4$Nav = grepl("Nav", data4$Features)
 data4$ABS = grepl("ABS", data4$Features)
-data4$Sport.Rim = grepl("Sport rim", data4$Features) # no features extracted, consider remove
-data4$Reverse.Camera = grepl("Reverse camera", data4$Features) # no features extracted, consider remove
+data4$Sport.Rim = grepl("Sport rim", data4$Features)
+data4$Reverse.Camera = grepl("Reverse camera", data4$Features)
 data4$Power.Door = grepl("Power Door", data4$Features)
-data4$Climate.Control = grepl("Climate control", data4$Features) # no features extracted, consider remove
+data4$Climate.Control = grepl("Climate control", data4$Features)
 data4$Light = grepl("Light", data4$Features)
 
 # Testset Search
@@ -66,10 +75,10 @@ verify_data$Airbag = grepl("Airbag", verify_data$Features)
 verify_data$Leather = grepl("Leather", verify_data$Features)
 verify_data$Nav = grepl("Nav", verify_data$Features)
 verify_data$ABS = grepl("ABS", verify_data$Features)
-verify_data$Sport.Rim = grepl("Sport rim", verify_data$Features) # no features extracted, consider remove
-verify_data$Reverse.Camera = grepl("Reverse camera", verify_data$Features) # no features extracted, consider remove
+verify_data$Sport.Rim = grepl("Sport rim", verify_data$Features)
+verify_data$Reverse.Camera = grepl("Reverse camera", verify_data$Features)
 verify_data$Power.Door = grepl("Power Door", verify_data$Features)
-verify_data$Climate.Control = grepl("Climate control", verify_data$Features) # no features extracted, consider remove
+verify_data$Climate.Control = grepl("Climate control", verify_data$Features)
 verify_data$Light = grepl("Light", verify_data$Features)
 
 ## ## ## ## ## ## ## ## 
@@ -93,7 +102,7 @@ training_data1 = cbind.data.frame(
   data1$ID, data1$Brand, data1$Model, data1$Features, data1$Price,
   data1$Model.Variant, data1$Mfg_Year, data1$Engine_Capacity, data1$Transmission,
   data1$Airbag, data1$Leather, data1$Nav, data1$ABS, 
-  data1$Sport.Rims, data1$Reverse.Camera, data1$Power.Door,
+  data1$Sport.Rim, data1$Reverse.Camera, data1$Power.Door,
   data1$Climate.Control, data1$Light
 )
 
@@ -108,7 +117,7 @@ training_data2 = cbind.data.frame(
   data2$ID, data2$Brand, data2$Model, data2$Features, data2$Price,
   data2$Model.Variant, data2$Mfg_Year, data2$Engine_Capacity, data2$Transmission,
   data2$Airbag, data2$Leather, data2$Nav, data2$ABS, 
-  data2$Sport.Rims, data2$Reverse.Camera, data2$Power.Door,
+  data2$Sport.Rim, data2$Reverse.Camera, data2$Power.Door,
   data2$Climate.Control, data2$Light
 )
 
@@ -155,24 +164,75 @@ str(training_data3) #109,892 obs
 str(training_data4) #109,591 obs
 
 # 1st case: choose most recent data set for training
-training_data = training_data1
+# training_data = training_data1
 
 # 2nd case: merge historical datasets by outer join 2 df
 # consider using data.table for faster computation
-# Possible issues: join witihout specifying ID
-training_data = merge(training_data1, training_data2, all=TRUE)
-training_data = merge(training_data, training_data3, all=TRUE)
-training_data = merge(training_data, training_data4, all=TRUE)
 
-str(training_data) # 246,607 obs
+# duplicates exist in data set right from the start
+sum(duplicated(training_data1$ID))
+sum(duplicated(training_data2$ID))
 
-# all.equal(levels(testdata$Modelvar), levels(data$Model.Variant)) 
+training_data1 = training_data1[!duplicated(training_data1$ID), ]
+training_data2 = training_data2[!duplicated(training_data2$ID), ]
+
+# training_data_merged = merge(training_data1, training_data2, all=TRUE) # use left join to prioritize newer datasets
+# training_data = merge(training_data, training_data3, all=TRUE)
+# training_data = merge(training_data, training_data4, all=TRUE)
+
+# Alternative solution:
+# Left join the latest dataset
+# Merge older dataset without same IDs
+
+training_data_merged = dplyr::left_join(training_data1, training_data2)
+
+head(training_data_merged[duplicated(training_data_merged$ID), ])
+
+ID_init = training_data_merged$ID
+training_data_init = dplyr::filter(training_data2, !(ID %in% ID_init))
+
+training_data = merge(training_data_merged, training_data_init, all=TRUE)
+
+head(training_data[duplicated(training_data$ID), ])
+
+training_data = merge(training_data, training_data2[!ID_init, ], all=TRUE)
+
+head(training_data[duplicated(training_data$ID), ])
+
+# re-factorize data
+str(training_data)
+training_data$Brand = as.factor(toupper(trimws(training_data$Brand)))
+training_data$Modelvar = as.factor(toupper(trimws(training_data$Modelvar)))
+training_data$Model = as.factor(toupper(trimws(training_data$Model)))
+training_data$Transm = as.factor(toupper(trimws(training_data$Transm)))
+training_data$MfgYr = as.factor(toupper(trimws(training_data$MfgYr)))
+
+training_data$Price = as.numeric(gsub('[,]', '', training_data$Price))
+
+# filter out empty cells & NAs
+training_data = training_data[complete.cases(training_data[ , -4]), ]
+
+training_data = dplyr::filter(training_data, Brand != "" & Model != "" &
+                                     Modelvar != "" & !(MfgYr %in% c("", "1995 OR OLDER")) &
+                                     Transm != "")
+
+
+training_data = droplevels(training_data)
+
+training_data$CC_adj = ifelse(training_data$CC<100, training_data$CC*100,
+                              ifelse(training_data$CC<10000, training_data$CC, training_data$CC))
+
+training_data = dplyr::filter(training_data, !is.na(CC_adj) & CC_adj < 10000)
+# scale data at respective make level
+
+# rm(training_data)
+
 
 testing_data = cbind.data.frame(
   verify_data$ID, verify_data$Brand, verify_data$Model, verify_data$Features, verify_data$Price,
   verify_data$Model.Variant, verify_data$Mfg_Year, verify_data$Engine_Capacity, verify_data$Transmission,
   verify_data$Airbag, verify_data$Leather, verify_data$Nav, verify_data$ABS, 
-  verify_data$Sport.Rims, verify_data$Reverse.Camera, verify_data$Power.Door,
+  verify_data$Sport.Rim, verify_data$Reverse.Camera, verify_data$Power.Door,
   verify_data$Climate.Control, verify_data$Light
 )
 
@@ -183,80 +243,45 @@ names(testing_data) = c("ID", "Brand", "Model", "Features", "Price",
                          "ClimaCtrl", "Light"
 )
 
+sum(duplicated(testing_data$ID))
+
+testing_data = testing_data[!duplicated(testing_data$ID), ]
+
+str(testing_data)
+testing_data$Brand = as.factor(toupper(trimws(testing_data$Brand)))
+testing_data$Modelvar = as.factor(toupper(trimws(testing_data$Modelvar)))
+testing_data$Model = as.factor(toupper(trimws(testing_data$Model)))
+testing_data$Transm = as.factor(toupper(trimws(testing_data$Transm)))
+testing_data$MfgYr = as.factor(toupper(trimws(testing_data$MfgYr)))
+
+testing_data$Price = as.numeric(gsub('[,]', '', testing_data$Price))
+
+testing_data = testing_data[complete.cases(testing_data[ , -4]), ]
+
+testing_data = dplyr::filter(testing_data, Brand != "" & Model != "" &
+                                Modelvar != "" & !(MfgYr %in% c("", "1995 OR OLDER")) &
+                                Transm != "")
+
+testing_data = droplevels(testing_data)
+
+testing_data$CC_adj = ifelse(testing_data$CC<100, testing_data$CC*100,
+                             ifelse(testing_data$CC<10000, testing_data$CC, testing_data$CC))
+
+testing_data = dplyr::filter(testing_data, !is.na(CC_adj) & CC_adj < 10000)
+
 str(testing_data)
 
-all.equal(levels(testing_data$Modelvar), levels(training_data$Modelvar))
+colnames(training_data) == colnames(testing_data)
 
-# Prep Training Dataset ----------------------------------------------------
+# Chevrolet: prep data ------------------------------------
 
-# # # Issues converting MfgYr to int will change numbers # # #
- # # #                                                  # # #
-# # #                                                    # # #
+train_che = dplyr::filter(training_data, Brand=="CHEVROLET")
+summary(train_che[, -4]) # summary without the long list of features text
 
-plyr::count(training_data$MfgYr)
-training_data = dplyr::filter(training_data, MfgYr != '1995 or older')
-
-training_data$Features = as.character(training_data$Features) # convert "Features" to text
-
-# transform CC numbers less than 100 to thousands
-plyr::count(training_data$CC<100)
-plyr::count(training_data$CC>10000)
-
-training_data$CC_adj = ifelse(training_data$CC<100, training_data$CC*100,
-                              ifelse(training_data$CC<10000, training_data$CC, training_data$CC))
-
-training_data = dplyr::filter(training_data, !is.na(CC_adj))
-training_data = dplyr::filter(training_data, CC_adj < 10000)
-
-summary(training_data$CC_adj)
-
-# Try scaling at make / model level
-# library("scales")
-# training_data$MfgYr = rescale(training_data$MfgYr, to=c(0,1))
-# training_data$CC = rescale(training_data$CC, to=c(0,1))
-
-# Prep Testing Dataset ----------------------------------------------------
-
-plyr::count(testing_data$MfgYr)
-testing_data = dplyr::filter(testing_data, MfgYr != '1995 or older')
-# testing_data$MfgYr = as.numeric(testing_data$MfgYr) # convert "MfgYr" to int
-
-testing_data$CC = as.numeric(levels(testing_data$CC))[testing_data$CC]
-testing_data$Features = as.character(testing_data$Features) # convert "Features" to text
-
-
-plyr::count(testing_data$CC_adj<100)
-plyr::count(testing_data$CC>10000)
-testing_data$CC_adj = ifelse(testing_data$CC<100, testing_data$CC*100,
-                              ifelse(testing_data$CC<10000, testing_data$CC, testing_data$CC))
-
-
-testing_data = dplyr::filter(testing_data, !is.na(CC_adj))
-testing_data = dplyr::filter(testing_data, CC_adj < 10000)
-
-
-# testing_data$MfgYr = rescale(testing_data$MfgYr, to=c(0,1))
-# testing_data$CC = rescale(testing_data$CC, to=c(0,1))
-
-
-
-
-# Chevrolet / Naza / Cherry: prep data ------------------------------------
-
-train_che = dplyr::filter(training_data, Brand=="Chevrolet")
-head(plyr::count(train_che$Modelvar))
-
-test_che = dplyr::filter(testing_data, Brand=="Chevrolet" & 
-                           !Modelvar %in% c('', '-', '0', '#N/A') &
-                           !is.na(Modelvar))
-head(plyr::count(test_che$Modelvar))
-
-# clean up spaces / upper-lower char and re-factor
-train_che$Modelvar = as.factor(toupper(trimws(train_che$Modelvar)))
-test_che$Modelvar = as.factor(toupper(trimws(test_che$Modelvar)))
-
-plyr::count(train_che$CC_adj)
-plyr::count(test_che$CC_adj)
+test_che = dplyr::filter(testing_data, Brand=="CHEVROLET" & 
+                           !Modelvar %in% c('-', '0', '#N/A')
+                         )
+summary(test_che[, -4])
 
 train_che$CC_scl = as.numeric(scale(train_che$CC_adj))
 test_che$CC_scl = as.numeric(scale(test_che$CC_adj))
@@ -272,45 +297,37 @@ train_che = train_che %>%
 train_che = droplevels(train_che)
 test_che = droplevels(test_che)
 
-# standardize Variant levels
-che_var = unique(c(levels(train_che$Modelvar),levels(test_che$Modelvar)))
-train_che$Modelvar = factor(train_che$Modelvar, levels = che_var)
-test_che$Modelvar = factor(test_che$Modelvar, levels = che_var)
-summary(train_che$Modelvar)
-summary(test_che$Modelvar)
-
 # standardize Model levels
-che_mdl = unique(levels(train_che$Model),levels(test_che$Model))
+che_mdl = unique(c(levels(train_che$Model),levels(test_che$Model)))
 train_che$Model = factor(train_che$Model, levels = che_mdl)
 test_che$Model = factor(test_che$Model, levels = che_mdl)
 
 summary(train_che$Model)
 summary(test_che$Model)
-test_che = dplyr::filter(test_che, !is.na(Model))
+
 
 # standardize MfgYr levels
-che_yr = unique(levels(train_che$MfgYr), levels(test_che$MfgYr))
+che_yr = unique(c(levels(train_che$MfgYr), levels(test_che$MfgYr)))
 train_che$MfgYr = factor(train_che$MfgYr, levels = che_yr)
 test_che$MfgYr = factor(test_che$MfgYr, levels = che_yr)
 
 summary(train_che$MfgYr)
 summary(test_che$MfgYr)
-test_che = dplyr::filter(test_che, !is.na(MfgYr))
 
-# Chevrolet: identify predictors ------------------------------------------
+# Chevrolet: id pred ------------------------------------------
 
-plyr::count(train_che, "Transm") # all auto
+plyr::count(train_che, "Transm") # all auto, 1 manual
 plyr::count(train_che, "Airbag")
 plyr::count(train_che, "Leather")
 plyr::count(train_che, "Nav")
 plyr::count(train_che, "ABS")
-plyr::count(train_che, "SportRims")
+plyr::count(train_che, "SportRims") # all false
 plyr::count(train_che, "RevCam")
 plyr::count(train_che, "PowDoor") # weird some units have power door?
-plyr::count(train_che, "ClimaCtrl")
+plyr::count(train_che, "ClimaCtrl") # all false
 plyr::count(train_che, "Light")
 
-drops = c("Transm")
+drops = c("Transm", "SportRims", "ClimaCtrl")
 train_che = train_che[, !names(train_che) %in% drops]
 test_che = test_che[, !names(test_che) %in% drops]
 
@@ -318,38 +335,151 @@ colnames(train_che) == colnames(test_che)
 colnames(train_che)
 str(train_che)
 
-
 # Chevrolet: SVM ----------------------------------------------------------
 
-system.time(tune_radial_che <- tune(svm, Modelvar ~ ., data = train_che[,-c(1:2, 4:5, 8, 18)],
+system.time(tune_radial_che <- tune(svm, Modelvar ~ ., data = train_che[,-c(1:2, 4:5, 8, 16)],
                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
+
+# 200 obs, 17- 6 var
 
 # 200 obs, 19-6 variables, Transm removed
 # user  system elapsed 
 # 3.69    0.08    3.82 
 
-tune_radial_che$best.parameters 
+tune_radial_che$best.parameters
+# excl. Transm, Rims, Climactrl, cost=1, gamma=0.1
 # incl. manf yr, CC cost=1, gamma=0.1
 
 # Model Group NA
-svm_che = svm(Modelvar ~., data = train_che[,-c(1:2, 4:5, 8, 18)],
+svm_che = svm(Modelvar ~., data = train_che[,-c(1:2, 4:5, 8, 16)],
               kernel="radial", cost=tune_radial_che$best.parameters$cost,
               gamma=tune_radial_che$best.parameters$gamma, trace=F
 )
 
-svm_est_che = predict(svm_che, newdata=test_che[,-c(1:2, 4:5, 8, 18)])
+svm_est_che = predict(svm_che, newdata=test_che[,-c(1:2, 4:5, 8, 16)])
+
+che_est_lvl = unique(c(levels(svm_est_che), levels(test_che$Modelvar)))
+test_che$Modelvar = factor(test_che$Modelvar, levels = che_est_lvl)
+svm_est_che = factor(svm_est_che, levels = che_est_lvl)
 
 1-sum(test_che[,6]==svm_est_che)/nrow(test_che)
 
 # Error info:
+# 20% (excl. Transm, Rims, Climactrl) - reason training missed out several Model Grps
 # 10% (incl MfgYr, CC) excl Model Group
+
+# Note: if training set do not have particular Model Grp, wont be able to x-check the accuracy
 
 che_tbl = table(test_che[,6], svm_est_che)
 write.csv(che_tbl,"che.csv")
 
 # Suzuki: prep data -------------------------------------------------------
 
+train_szk = dplyr::filter(training_data, Brand=="Suzuki" &
+                            !is.na(Modelvar))
+summary(train_szk[, -4])
+
+test_szk = dplyr::filter(testing_data, Brand=="Suzuki" & 
+                           !(Modelvar %in% c('', '-', '0', '#N/A')) &
+                           !is.na(Modelvar))
+summary(test_szk[, -4])
+
+# clean up spaces / upper-lower char and re-factor
+train_szk$Modelvar = as.factor(toupper(trimws(train_szk$Modelvar)))
+test_szk$Modelvar = as.factor(toupper(trimws(test_szk$Modelvar)))
+
+plyr::count(train_szk$CC_adj)
+plyr::count(test_szk$CC_adj)
+
+train_szk$CC_scl = as.numeric(scale(train_szk$CC_adj))
+test_szk$CC_scl = as.numeric(scale(test_szk$CC_adj))
+
+# filter for variants with size > 30
+train_szk = train_szk %>% 
+  group_by(Modelvar) %>%
+  dplyr::filter(n()>30) %>%
+  as.data.frame()
+
+# test set no filter
+
+test_szk = dplyr::filter(test_szk, Transm != "")
+
+train_szk = droplevels(train_szk)
+test_szk = droplevels(test_szk)
+
+# standardize Model levels
+szk_mdl = unique(levels(train_szk$Model),levels(test_szk$Model))
+train_szk$Model = factor(train_szk$Model, levels = szk_mdl)
+test_szk$Model = factor(test_szk$Model, levels = szk_mdl)
+
+summary(train_szk$Model)
+summary(test_szk$Model)
+test_szk = dplyr::filter(test_szk, !is.na(Model))
+
+# standardize MfgYr levels
+szk_yr = unique(levels(train_szk$MfgYr), levels(test_szk$MfgYr))
+train_szk$MfgYr = factor(train_szk$MfgYr, levels = szk_yr)
+test_szk$MfgYr = factor(test_szk$MfgYr, levels = szk_yr)
+
+summary(train_szk$MfgYr)
+summary(test_szk$MfgYr)
+
+# Suzuki: id pred ---------------------------------------------------------
+
+plyr::count(train_szk, "Transm") # 3 manual
+plyr::count(train_szk, "Airbag")
+plyr::count(train_szk, "Leather")
+plyr::count(train_szk, "Nav")
+plyr::count(train_szk, "ABS")
+plyr::count(train_szk, "SportRims")
+plyr::count(train_szk, "RevCam")
+plyr::count(train_szk, "PowDoor") # weird some units have power door?
+plyr::count(train_szk, "ClimaCtrl")
+plyr::count(train_szk, "Light")
+
+# drops = c("Transm")
+# train_szk = train_szk[, !names(train_szk) %in% drops]
+# test_szk = test_szk[, !names(test_szk) %in% drops]
+
+colnames(train_szk) == colnames(test_szk)
+colnames(train_szk)
+str(train_szk)
+
+# Suzuki: SVM -------------------------------------------------------------
+
+system.time(tune_radial_szk <- tune(svm, Modelvar ~ ., data = train_szk[,-c(1:2, 4:5, 8, 19)],
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+# 555 obs, 20-6 variables
+# user  system elapsed 
+# 14.46    0.25   15.07
+
+tune_radial_szk$best.parameters 
+# incl. manf yr, CC cost=100, gamma=0.1
+
+# Model Group NA
+svm_szk = svm(Modelvar ~., data = train_szk[,-c(1:2, 4:5, 8, 19)],
+              kernel="radial", cost=tune_radial_szk$best.parameters$cost,
+              gamma=tune_radial_szk$best.parameters$gamma, trace=F
+)
+
+svm_est_szk = predict(svm_szk, newdata=test_szk[,-c(1:2, 4:5, 8, 19)])
+
+szk_est_lvl = unique(c(levels(svm_est_szk), levels(test_szk$Modelvar)))
+test_szk$Modelvar = factor(test_szk$Modelvar, levels = szk_est_lvl)
+svm_est_szk = factor(svm_est_szk, levels = szk_est_lvl)
+
+1-sum(test_szk$Modelvar==svm_est_szk)/nrow(test_szk)
+
+# Error info:
+# 30% (incl MfgYr, CC)
+
+szk_tbl = table(test_szk$Modelvar, svm_est_szk)
+write.csv(szk_tbl,"che.csv")
+
+# Others ------------------------------------------------------------------
 
 
 # Peugeot
@@ -376,17 +506,10 @@ train_mzd$CC_scl = as.numeric(scale(train_mzd$CC_adj))
 test_mzd$CC_scl = as.numeric(scale(test_mzd$CC_adj))
 
 # filter for variants with size > 30
-library(dplyr)
 train_mzd = train_mzd %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>30) %>%
   as.data.frame()
-
-test_mzd = test_mzd %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
-
 
 test_mzd = dplyr::filter(test_mzd, Transm != "")
 
@@ -401,17 +524,15 @@ summary(train_mzd$Modelvar)
 summary(test_mzd$Modelvar)
 
 # standardize Model levels
-mzd_mdl = unique(levels(train_mzd$Model),levels(test_mzd$Model))
+mzd_mdl = unique(c(levels(train_mzd$Model),levels(test_mzd$Model)))
 train_mzd$Model = factor(train_mzd$Model, levels = mzd_mdl)
 test_mzd$Model = factor(test_mzd$Model, levels = mzd_mdl)
 
 summary(train_mzd$Model)
-# test_mzd = dplyr::filter(test_mzd, !is.na(Model))
-# issue: Model Group all NAs
 summary(test_mzd$Model)
 
 # standardize MfgYr levels
-mzd_yr = unique(levels(train_mzd$MfgYr), levels(test_mzd$MfgYr))
+mzd_yr = unique(c(levels(train_mzd$MfgYr), levels(test_mzd$MfgYr)))
 train_mzd$MfgYr = factor(train_mzd$MfgYr, levels = mzd_yr)
 test_mzd$MfgYr = factor(test_mzd$MfgYr, levels = mzd_yr)
 
@@ -458,43 +579,43 @@ svm_mzd = svm(Modelvar ~., data = train_mzd[,-c(1:3, 4:5, 8, 19)],
 
 svm_est_mzd = predict(svm_mzd, newdata=test_mzd[,-c(1:3, 4:5, 8, 19)])
 
+mzd_var_lvl = unique(c(levels(svm_est_mzd), levels(test_mzd$Modelvar)))
+test_mzd$Modelvar = factor(test_mzd$Modelvar, levels = mzd_var_lvl)
+svm_est_mzd = factor(svm_est_mzd, levels = mzd_var_lvl)
+
 1-sum(test_mzd[,6]==svm_est_mzd)/nrow(test_mzd)
 
 # Error info:
-# 23% (incl MfgYr, CC) excl Model Group
+# 33% (incl MfgYr, CC) excl Model Group
 
-mzd_tbl = table(test_mzd[,6], svm_est_mzd)
+mzd_tbl = table(test_mzd$Modelvar, svm_est_mzd)
 write.csv(mzd_tbl,"mzd.csv")
 
 # Ford: prep data  --------------------------------------------------------------------
 
 train_ford = dplyr::filter(training_data, Brand=="Ford")
-head(plyr::count(train_ford$Modelvar))
 
+# test
+test_ford[complete.cases(test_ford[, ])]
 test_ford = dplyr::filter(testing_data, Brand=="Ford" & 
-                           !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_ford$Modelvar))
+                            !Modelvar %in% c('', '-', '0', '#N/A') &
+                            !is.na(Modelvar) &
+                            !is.na(MfgYr))
 
 # clean up spaces / upper-lower char and re-factor
 train_ford$Modelvar = as.factor(toupper(trimws(train_ford$Modelvar)))
 test_ford$Modelvar = as.factor(toupper(trimws(test_ford$Modelvar)))
 
-plyr::count(train_ford$CC_adj)
-plyr::count(test_ford$CC_adj)
+summary(train_ford$CC_adj)
+summary(test_ford$CC_adj)
 
 train_ford$CC_scl = as.numeric(scale(train_ford$CC_adj))
 test_ford$CC_scl = as.numeric(scale(test_ford$CC_adj))
 
 # filter for variants with size > 30
-library(dplyr)
 train_ford = train_ford %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
-
-test_ford = test_ford %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>30) %>%
   as.data.frame()
 
 train_ford = droplevels(train_ford)
@@ -508,14 +629,13 @@ summary(train_ford$Modelvar)
 summary(test_ford$Modelvar)
 
 # standardize Model levels
-ford_mdl = unique(levels(train_ford$Model),levels(test_ford$Model))
+ford_mdl = unique(c(levels(train_ford$Model),levels(test_ford$Model)))
 train_ford$Model = factor(train_ford$Model, levels = ford_mdl)
 test_ford$Model = factor(test_ford$Model, levels = ford_mdl)
 
 summary(train_ford$Model)
-test_ford = dplyr::filter(test_ford, !is.na(Model))
 summary(test_ford$Model)
-
+test_ford = dplyr::filter(test_ford, !is.na(Model))
 
 # standardize MfgYr levels
 ford_yr = unique(levels(train_ford$MfgYr), levels(test_ford$MfgYr))
@@ -564,68 +684,55 @@ svm_ford = svm(Modelvar ~., data = train_ford[,-c(1:2, 4:5, 8, 19)],
 )
 
 svm_est_ford = predict(svm_ford, newdata=test_ford[,-c(1:2, 4:5, 8, 19)])
+ford_var_lvl = unique(c(levels(test_ford$Modelvar), levels(svm_est_ford)))
+test_ford$Modelvar = factor(test_ford$Modelvar, levels = ford_var_lvl)
+svm_est_ford = factor(svm_est_ford, levels = ford_var_lvl)
 
-1-sum(test_ford[,6]==svm_est_ford)/nrow(test_ford)
+1-sum(test_ford$Modelvar==svm_est_ford)/nrow(test_ford)
 
 # Error info:
-# 15% (incl MfgYr, CC)
+# 29% (incl MfgYr, CC)
 
-ford_tbl = table(test_ford[,6], svm_est_ford)
+ford_tbl = table(test_ford$Modelvar, svm_est_ford)
 write.csv(ford_tbl,"ford.csv")
 
 # Mitsubishi: prep data ---------------------------------------------------------
 
 train_mit = dplyr::filter(training_data, Brand=="Mitsubishi")
-head(plyr::count(train_mit$Modelvar))
 
 test_mit = dplyr::filter(testing_data, Brand=="Mitsubishi" & 
-                           !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_mit$Modelvar))
+                           !Modelvar %in% c('', '-', '0', '#N/A') &
+                           !is.na(Model))
 
 # clean up spaces / upper-lower char and re-factor
 train_mit$Modelvar = as.factor(toupper(trimws(train_mit$Modelvar)))
 test_mit$Modelvar = as.factor(toupper(trimws(test_mit$Modelvar)))
 
-plyr::count(train_mit$CC_adj)
-plyr::count(test_mit$CC_adj)
+summary(train_mit$CC_adj)
+summary(test_mit$CC_adj)
 
 train_mit$CC_scl = as.numeric(scale(train_mit$CC_adj))
 test_mit$CC_scl = as.numeric(scale(test_mit$CC_adj))
 
 # filter for variants with size > 30
-library(dplyr)
 train_mit = train_mit %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
-
-test_mit = test_mit %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>30) %>%
   as.data.frame()
 
 train_mit = droplevels(train_mit)
 test_mit = droplevels(test_mit)
 
-# standardize Variant levels
-mit_var = unique(c(levels(train_mit$Modelvar),levels(test_mit$Modelvar)))
-train_mit$Modelvar = factor(train_mit$Modelvar, levels = mit_var)
-test_mit$Modelvar = factor(test_mit$Modelvar, levels = mit_var)
-summary(train_mit$Modelvar)
-summary(test_mit$Modelvar)
-
 # standardize Model levels
-mit_mdl = unique(levels(train_mit$Model),levels(test_mit$Model))
+mit_mdl = unique(c(levels(train_mit$Model),levels(test_mit$Model)))
 train_mit$Model = factor(train_mit$Model, levels = mit_mdl)
 test_mit$Model = factor(test_mit$Model, levels = mit_mdl)
 
 summary(train_mit$Model)
-test_mit = dplyr::filter(test_mit, !is.na(Model))
 summary(test_mit$Model)
 
-
 # standardize MfgYr levels
-mit_yr = unique(levels(train_mit$MfgYr), levels(test_mit$MfgYr))
+mit_yr = unique(c(levels(train_mit$MfgYr), levels(test_mit$MfgYr)))
 train_mit$MfgYr = factor(train_mit$MfgYr, levels = mit_yr)
 test_mit$MfgYr = factor(test_mit$MfgYr, levels = mit_yr)
 
@@ -649,7 +756,8 @@ colnames(train_mit) == colnames(test_mit)
 colnames(train_mit)
 str(train_mit)
 
-library(e1071)
+# Mitsubishi: SVM ---------------------------------------------------------
+
 system.time(tune_radial_mit <- tune(svm, Modelvar ~ ., data = train_mit[,-c(1:2, 4:5, 8, 19)],
                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
@@ -669,57 +777,45 @@ svm_mit = svm(Modelvar ~., data = train_mit[,-c(1:2, 4:5, 8, 19)],
 
 svm_est_mit = predict(svm_mit, newdata=test_mit[,-c(1:2, 4:5, 8, 19)])
 
-1-sum(test_mit[,6]==svm_est_mit)/nrow(test_mit)
+mit_var = unique(c(levels(svm_est_mit),levels(test_mit$Modelvar)))
+svm_est_mit = factor(svm_est_mit, levels = mit_var)
+test_mit$Modelvar = factor(test_mit$Modelvar, levels = mit_var)
+
+1-sum(test_mit$Modelvar==svm_est_mit)/nrow(test_mit)
 
 # Error info:
-# 7.7% (incl MfgYr, CC)
+# 21% (incl MfgYr, CC)
 
-mit_tbl = table(test_mit[,6], svm_est_mit)
+mit_tbl = table(test_mit$Modelvar, svm_est_mit)
 write.csv(mit_tbl,"mit.csv")
 
 # Kia: All ----------------------------------------------------------------
 
 train_kia = dplyr::filter(training_data, Brand=="Kia")
-head(plyr::count(train_kia$Modelvar))
-
 test_kia = dplyr::filter(testing_data, Brand=="Kia" & 
-                          !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_kia$Modelvar))
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
 
 # clean up spaces / upper-lower char and re-factor
 train_kia$Modelvar = as.factor(toupper(trimws(train_kia$Modelvar)))
 test_kia$Modelvar = as.factor(toupper(trimws(test_kia$Modelvar)))
 
-plyr::count(train_kia$CC_adj)
-plyr::count(test_kia$CC_adj)
+summary(train_kia$CC_adj)
+summary(test_kia$CC_adj)
 
 train_kia$CC_scl = as.numeric(scale(train_kia$CC_adj))
 test_kia$CC_scl = as.numeric(scale(test_kia$CC_adj))
 
 # filter for variants with size > 30
-library(dplyr)
 train_kia = train_kia %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
-
-test_kia = test_kia %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>30) %>%
   as.data.frame()
 
 train_kia = droplevels(train_kia)
 test_kia = droplevels(test_kia)
 
-# standardize Variant levels
-kia_var = unique(c(levels(train_kia$Modelvar),levels(test_kia$Modelvar)))
-train_kia$Modelvar = factor(train_kia$Modelvar, levels = kia_var)
-test_kia$Modelvar = factor(test_kia$Modelvar, levels = kia_var)
-summary(train_kia$Modelvar)
-summary(test_kia$Modelvar)
-
 # standardize Model levels
-kia_mdl = unique(levels(train_kia$Model),levels(test_kia$Model))
+kia_mdl = unique(c(levels(train_kia$Model),levels(test_kia$Model)))
 train_kia$Model = factor(train_kia$Model, levels = kia_mdl)
 test_kia$Model = factor(test_kia$Model, levels = kia_mdl)
 
@@ -727,7 +823,7 @@ summary(train_kia$Model)
 summary(test_kia$Model)
 
 # standardize MfgYr levels
-kia_yr = unique(levels(train_kia$MfgYr), levels(test_kia$MfgYr))
+kia_yr = unique(c(levels(train_kia$MfgYr), levels(test_kia$MfgYr)))
 train_kia$MfgYr = factor(train_kia$MfgYr, levels = kia_yr)
 test_kia$MfgYr = factor(test_kia$MfgYr, levels = kia_yr)
 
@@ -759,7 +855,6 @@ str(train_kia)
 
 # Kia: SVM ----------------------------------------------------------------
 
-library(e1071)
 system.time(tune_radial_kia <- tune(svm, Modelvar ~ ., data = train_kia[,-c(1:2, 4:5, 17)],
                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
@@ -779,43 +874,40 @@ svm_kia = svm(Modelvar ~., data = train_kia[,-c(1:2, 4:5, 17)],
 
 svm_est_kia = predict(svm_kia, newdata=test_kia[,-c(1:2, 4:5, 17)])
 
-1-sum(test_kia[,6]==svm_est_kia)/nrow(test_kia)
+kia_var = unique(c(levels(svm_est_kia),levels(test_kia$Modelvar)))
+svm_est_kia = factor(svm_est_kia, levels = kia_var)
+test_kia$Modelvar = factor(test_kia$Modelvar, levels = kia_var)
+
+1-sum(test_kia$Modelvar==svm_est_kia)/nrow(test_kia)
 
 # Error info:
-# 2.9% (incl MfgYr, CC)
+# 11% (incl MfgYr, CC)
 
-kia_tbl = table(test_kia[,6], svm_est_kia)
+kia_tbl = table(test_kia$Modelvar, svm_est_kia)
 write.csv(kia_tbl,"kia.csv")
 
 # Hyundai: All ------------------------------------------------------------
 
 train_hy = dplyr::filter(training_data, Brand=="Hyundai")
-head(plyr::count(train_hy$Modelvar))
-
 test_hy = dplyr::filter(testing_data, Brand=="Hyundai" & 
                           !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_hy$Modelvar))
+
 
 # clean up spaces / upper-lower char and re-factor
 train_hy$Modelvar = as.factor(toupper(trimws(train_hy$Modelvar)))
 test_hy$Modelvar = as.factor(toupper(trimws(test_hy$Modelvar)))
 
-plyr::count(train_hy$CC_adj)
-plyr::count(test_hy$CC_adj)
+summary(train_hy$CC_adj)
+summary(test_hy$CC_adj)
 
 train_hy$CC_scl = as.numeric(scale(train_hy$CC_adj))
 test_hy$CC_scl = as.numeric(scale(test_hy$CC_adj))
 
 # filter for variants with size > 30
-library(dplyr)
+
 train_hy = train_hy %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
-
-test_hy = test_hy %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>30) %>%
   as.data.frame()
 
 train_hy = droplevels(train_hy)
