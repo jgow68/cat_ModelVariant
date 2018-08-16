@@ -1349,35 +1349,16 @@ write.csv(hon_tbl,"hon.csv")
 c(colnames(train_hon), dim(train_hon))
 
 # Toyota: All -------------------------------------------------------------
-train_tyt = dplyr::filter(training_data, Brand=="Toyota")
-head(plyr::count(train_tyt$Modelvar))
-
-test_tyt = dplyr::filter(testing_data, Brand=="Toyota" & 
-                               !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_tyt$Modelvar))
-
-# clean up spaces / upper-lower char and re-factor
-train_tyt$Modelvar = as.factor(toupper(trimws(train_tyt$Modelvar)))
-test_tyt$Modelvar = as.factor(toupper(trimws(test_tyt$Modelvar)))
-
-plyr::count(train_tyt$Modelvar)
-plyr::count(test_tyt$Modelvar)
-
-plyr::count(train_tyt$CC_adj)
-plyr::count(test_tyt$CC_adj)
+train_tyt = dplyr::filter(training_data, Brand=="TOYOTA")
+test_tyt = dplyr::filter(testing_data, Brand=="TOYOTA")
 
 train_tyt$CC_scl = as.numeric(scale(train_tyt$CC_adj))
 test_tyt$CC_scl = as.numeric(scale(test_tyt$CC_adj))
 
-# filter for variants with size > 30
+# filter training set only for variants with size >20
 train_tyt = train_tyt %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
-
-test_tyt = test_tyt %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>20) %>%
   as.data.frame()
 
 train_tyt = droplevels(train_tyt)
@@ -1388,201 +1369,176 @@ tyt_var = unique(c(levels(train_tyt$Modelvar),levels(test_tyt$Modelvar)))
 train_tyt$Modelvar = factor(train_tyt$Modelvar, levels = tyt_var)
 test_tyt$Modelvar = factor(test_tyt$Modelvar, levels = tyt_var)
 
+summary(train_tyt$Modelvar)
+summary(test_tyt$Modelvar)
+
 # standardize Model levels
-tyt_mdl = unique(levels(train_tyt$Model),levels(test_tyt$Model))
+tyt_mdl = unique(c(levels(train_tyt$Model),levels(test_tyt$Model)))
 train_tyt$Model = factor(train_tyt$Model, levels = tyt_mdl)
 test_tyt$Model = factor(test_tyt$Model, levels = tyt_mdl)
 
+summary(train_tyt$Model)
+summary(test_tyt$Model)
+
 # standardize MfgYr levels
-tyt_yr = unique(levels(train_tyt$MfgYr), levels(test_tyt$MfgYr))
+tyt_yr = unique(c(levels(train_tyt$MfgYr), levels(test_tyt$MfgYr)))
 train_tyt$MfgYr = factor(train_tyt$MfgYr, levels = tyt_yr)
 test_tyt$MfgYr = factor(test_tyt$MfgYr, levels = tyt_yr)
 
+summary(train_tyt$MfgYr)
+summary(test_tyt$MfgYr)
 
-summary(train_tyt) # check for NAs
-summary(test_tyt) # check for NAs
 
 
 # Toyota: identify predictors ---------------------------------------------
+to_drop = as.character()
+for (i in 9:(length(colnames(train_tyt))-2)){
+  test = plyr::count(train_tyt, colnames(train_tyt)[i])
+  if (length(test$freq) == 1){ 
+    # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
+    to_drop = c(paste(colnames(train_tyt)[i]), to_drop)
+  }
+}
 
-plyr::count(train_tyt, "Transm")
-plyr::count(train_tyt, "CC")
-plyr::count(train_tyt, "Airbag")
-plyr::count(train_tyt, "Leather")
-plyr::count(train_tyt, "Nav")
-plyr::count(train_tyt, "ABS")
-plyr::count(train_tyt, "SportRims")
-plyr::count(train_tyt, "RevCam")
-plyr::count(train_tyt, "PowDoor") # weird some units have power door?
-plyr::count(train_tyt, "TouchScreen") # all N/A
-plyr::count(train_tyt, "ClimaCtrl")
+drops = c(to_drop, "ID", "Brand", "Features", "Price", "CC", "CC_adj")
 
-test_search = grepl("leather", test_tyt$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-test_search = grepl("light", test_tyt$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-# drop non-useful predictors
-drops = c("CC", "TouchScreen")
+# drop all non-relevant predictors
 train_tyt = train_tyt[, !names(train_tyt) %in% drops]
 test_tyt = test_tyt[, !names(test_tyt) %in% drops]
 
-leather_tytTr = grepl("leather", train_tyt$Features, ignore.case=TRUE)
-leather_tytTt = grepl("leather", test_tyt$Features, ignore.case=TRUE)
-
-light_tytTr = grepl("light", train_tyt$Features, ignore.case=TRUE)
-light_tytTt = grepl("light", test_tyt$Features, ignore.case=TRUE)
-
-train_tyt$Leather = leather_tytTr
-test_tyt$Leather = leather_tytTt
-
-train_tyt$Light = light_tytTr
-test_tyt$Light = light_tytTt
-
 colnames(train_tyt) == colnames(test_tyt)
-
 colnames(train_tyt)
-str(train_tyt)
 
 # SVM: Toyota -------------------------------------------------------------
-
-library(e1071)
-system.time(tune_radial_tyt <- tune(svm, Modelvar ~ ., data = train_tyt[,-c(1:2, 4:5, 17)],
+system.time(tune_radial_tyt <- tune(svm, Modelvar ~ ., data = train_tyt,
                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
 
-# 11,400 obs, 19-5 variables
-# user  system elapsed 
-# 6086.24   18.04 6198.82 ~103
+dim(train_tyt)
 
-# 11,400 obs, 17-5 variables
-# user  system elapsed 
-# 5827.84   15.63 6342.66 ~105
-
-tune_radial_tyt$best.parameters
-
-# excl. manf yr, CC cost=10, gamma=0.1
-
-svm_tyt = svm(Modelvar ~., data = train_tyt[,-c(1:2, 4:5, 17)],
-             kernel="radial", cost=tune_radial_tyt$best.parameters$cost,
-             gamma=tune_radial_tyt$best.parameters$gamma, trace=F
+svm_tyt = svm(Modelvar ~., data = train_tyt,
+              kernel="radial", cost=tune_radial_tyt$best.parameters$cost,
+              gamma=tune_radial_tyt$best.parameters$gamma, trace=F
 )
 
+svm_est_tyt = predict(svm_tyt, newdata=test_tyt)
 
+tyt_est_lvl = unique(c(levels(svm_est_tyt), levels(test_tyt$Modelvar)))
+test_tyt$Modelvar = factor(test_tyt$Modelvar, levels = tyt_est_lvl)
+svm_est_tyt = factor(svm_est_tyt, levels = tyt_est_lvl)
 
-svm_est_tyt = predict(svm_tyt, newdata=test_tyt[,-c(1:2, 4:5, 17)])
+1-sum(test_tyt$Modelvar==svm_est_tyt)/nrow(test_tyt)
 
-1-sum(test_tyt[,6]==svm_est_tyt)/nrow(test_tyt)
+tyt_tbl = table(test_tyt$Modelvar, svm_est_tyt)
+write.csv(tyt_tbl,"tyt.csv")
+
+c(colnames(train_tyt), dim(train_tyt))
 
 # Error info:
 # 17.4% (incl MfgYr, CC)
 # 30.4% (excl MfgYr, CC)
 
-tyt_tbl = table(test_tyt[,6], svm_est_tyt)
-write.csv(tyt_tbl,"tyt.csv")
+# 23k obs, 11 var
+# user   system  elapsed 
+# 19091.54    58.72 19366.04 ~322 min ~5 hrs
 
 
 # Perodua: All ------------------------------------------------------------
-train_perodua = dplyr::filter(training_data, Brand=="Perodua")
-head(plyr::count(train_perodua$Modelvar))
 
-test_perodua = dplyr::filter(testing_data, Brand=="Perodua" & 
-                              !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_perodua$Modelvar))
+train_p2 = dplyr::filter(training_data, Brand=="PERODUA")
+test_p2 = dplyr::filter(testing_data, Brand=="PERODUA")
 
-train_perodua$Modelvar = as.character(train_perodua$Modelvar)
-test_perodua$Modelvar = as.character(test_perodua$Modelvar)
+train_p2$CC_scl = as.numeric(scale(train_p2$CC_adj))
+test_p2$CC_scl = as.numeric(scale(test_p2$CC_adj))
 
-# clean up spaces / upper-lower char and re-factor
-train_perodua$Modelvar = as.factor(toupper(trimws(train_perodua$Modelvar)))
-test_perodua$Modelvar = as.factor(toupper(trimws(test_perodua$Modelvar)))
-
-plyr::count(train_perodua$Modelvar)
-plyr::count(test_perodua$Modelvar)
-
-# filter for variants with size > 30
-train_perodua = train_perodua %>% 
+# filter training set only for variants with size >20
+train_p2 = train_p2 %>% 
   group_by(Modelvar) %>%
-  filter(n()>30) %>%
+  dplyr::filter(n()>20) %>%
   as.data.frame()
 
-test_perodua = test_perodua %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
+train_p2 = droplevels(train_p2)
+test_p2 = droplevels(test_p2)
 
-train_perodua = droplevels(train_perodua)
-test_perodua = droplevels(test_perodua)
+# standardize Variant levels
+p2_var = unique(c(levels(train_p2$Modelvar),levels(test_p2$Modelvar)))
+train_p2$Modelvar = factor(train_p2$Modelvar, levels = p2_var)
+test_p2$Modelvar = factor(test_p2$Modelvar, levels = p2_var)
 
-p2_lvl = unique(c(levels(train_perodua$Modelvar),levels(test_perodua$Modelvar)))
-train_perodua$Modelvar = factor(train_perodua$Modelvar, levels = p2_lvl)
-test_perodua$Modelvar = factor(test_perodua$Modelvar, levels = p2_lvl)
+summary(train_p2$Modelvar)
+summary(test_p2$Modelvar)
 
-plyr::count(train_perodua$CC_adj)
-train_perodua = dplyr::filter(train_perodua, CC_adj <= 1600) # alternative filter out data with low obs
-train_perodua$CC_scl = scale(train_perodua$CC_adj)
+# standardize Model levels
+p2_mdl = unique(c(levels(train_p2$Model),levels(test_p2$Model)))
+train_p2$Model = factor(train_p2$Model, levels = p2_mdl)
+test_p2$Model = factor(test_p2$Model, levels = p2_mdl)
 
-plyr::count(test_perodua$Modelvar)
-test_perodua = dplyr::filter(test_perodua, CC_adj <= 1600) # alternative filter out data with low obs
-test_perodua$CC_scl = scale(test_perodua$CC_adj)
-test_perodua$CC_scl = as.numeric(test_perodua$CC_scl)
+summary(train_p2$Model)
+summary(test_p2$Model)
 
-summary(train_perodua) # check for NAs
-summary(test_perodua) # check for NAs
+# standardize MfgYr levels
+p2_yr = unique(c(levels(train_p2$MfgYr), levels(test_p2$MfgYr)))
+train_p2$MfgYr = factor(train_p2$MfgYr, levels = p2_yr)
+test_p2$MfgYr = factor(test_p2$MfgYr, levels = p2_yr)
+
+summary(train_p2$MfgYr)
+summary(test_p2$MfgYr)
+
+str(train_p2)
+str(test_p2)
 
 # P2: Identify predictors-----------------------------------------------------
+to_drop = as.character()
+for (i in 9:(length(colnames(train_p2))-2)){
+  test = plyr::count(train_p2, colnames(train_p2)[i])
+  if (length(test$freq) == 1){ 
+    # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
+    to_drop = c(paste(colnames(train_p2)[i]), to_drop)
+  }
+}
 
-plyr::count(train_perodua, "Transm") # filtered for autos
-plyr::count(train_perodua, "CC") # 3 different ways of CC Groups: 12-20, 1000-2000, >10000
-plyr::count(train_perodua, "Airbag")
-plyr::count(train_perodua, "Leather")
-plyr::count(train_perodua, "Nav")
-plyr::count(train_perodua, "ABS")
-plyr::count(train_perodua, "SportRims")
-plyr::count(train_perodua, "RevCam")
-plyr::count(train_perodua, "PowDoor") # weird some units have power door?
-plyr::count(train_perodua, "TouchScreen") # all N/A
-plyr::count(train_perodua, "ClimaCtrl")
+drops = c(to_drop, "ID", "Brand", "Features", "Price", "CC", "CC_adj")
 
-test_search = grepl("leather", test_perodua$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
+# drop all non-relevant predictors
+train_p2 = train_p2[, !names(train_p2) %in% drops]
+test_p2 = test_p2[, !names(test_p2) %in% drops]
 
-test_search = grepl("light", test_perodua$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
+colnames(train_p2) == colnames(test_p2)
+colnames(train_p2)
 
 
-# drop non-useful predictors
-drops = c("CC", "TouchScreen")
-train_perodua = train_perodua[, !names(train_perodua) %in% drops]
-test_perodua = test_perodua[, !names(test_perodua) %in% drops]
-
-# add extra predictors
-leather_p2Tr = grepl("leather", train_perodua$Features, ignore.case=TRUE)
-leather_p2Tt = grepl("leather", test_perodua$Features, ignore.case=TRUE)
-
-light_p2Tr = grepl("light", train_perodua$Features, ignore.case=TRUE)
-light_p2Tt = grepl("light", test_perodua$Features, ignore.case=TRUE)
-
-train_perodua$Leather = leather_p2Tr
-test_perodua$Leather = leather_p2Tt
-
-train_perodua$Light = light_p2Tr
-test_perodua$Light = light_p2Tt
-
-colnames(train_perodua) == colnames(test_perodua)
-
-colnames(train_perodua)
-
-str(train_perodua)
 
 
 # P2: SVM -----------------------------------------------------------------
+dim(train_p2)
 
-library(e1071)
-system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = train_perodua[,-c(1:2, 4:5, 17)],
+system.time(tune_radial_p2 <- tune(svm, Modelvar ~ ., data = train_p2,
                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
+
+
+
+svm_p2 = svm(Modelvar ~., data = train_p2,
+              kernel="radial", cost=tune_radial_p2$best.parameters$cost,
+              gamma=tune_radial_p2$best.parameters$gamma, trace=F
+)
+
+svm_est_p2 = predict(svm_p2, newdata=test_p2)
+plyr::count(svm_est_p2)
+p2_est_lvl = unique(c(levels(svm_est_p2), levels(test_p2$Modelvar)))
+test_p2$Modelvar = factor(test_p2$Modelvar, levels = p2_est_lvl)
+svm_est_p2 = factor(svm_est_p2, levels = p2_est_lvl)
+
+1-sum(test_p2$Modelvar==svm_est_p2)/nrow(test_p2)
+
+p2_tbl = table(test_p2$Modelvar, svm_est_p2)
+write.csv(p2_tbl,"p2.csv")
+
+c(colnames(train_p2), dim(train_p2))
+
+# 18k obs, 11 var
+# user   system  elapsed 
+# 12621.70    30.49 12797.28 ~ 213 mins, 3.5 hrs
 
 # 9400 obs, 19-5 variables
 # user  system elapsed 
@@ -1592,129 +1548,622 @@ system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = train_perodua[,-c(
 # user  system elapsed 
 # 3140.10    8.92 3261.57 ~54 mins
 
-svm_tune_radial$best.parameters
 
-# excl. manf yr, CC cost=10, gamma=0.1
 
-svm_p2 = svm(Modelvar ~., data = train_perodua[,-c(1:2, 4:5, 17)],
-                 kernel="radial", cost=svm_tune_radial$best.parameters$cost,
-                 gamma=svm_tune_radial$best.parameters$gamma, trace=F
+
+# P2: h2o GLM -------------------------------------------------------------
+
+h2o.init(nthreads = -1, 
+         min_mem_size="4g", max_mem_size = "8g"
+         )
+
+data = as.h2o(train_p2)
+data_for_pred = as.h2o(test_p2[, -2])
+
+y <- 'Modelvar'
+x <- setdiff(names(data), y)
+
+
+splits <- h2o.splitFrame(data = data, 
+                         ratios = c(0.7, 0.15),  #partition data into 70%, 15%, 15% chunks
+                         seed = 1)  #setting a seed will guarantee reproducibility
+train <- splits[[1]]
+valid <- splits[[2]]
+test <- splits[[3]]
+
+glm_fit1 <- h2o.glm(x = x, 
+                    y = y, 
+                    training_frame = train,
+                    model_id = "glm_fit1",
+                    family = "multinomial"
+)  #similar to R's glm, h2o.glm has the family argument
+# binomial, gaussian (int/num), ordinal (cat>3 lvls), quasibinomial (num), poisson, gamma, tweedie
+
+# automatic tuning of lambda, for regularization
+system.time(glm_fit2 <- h2o.glm(x = x, 
+                        y = y, 
+                        training_frame = data,
+                        model_id = "glm_fit2",
+                        # validation_frame = valid,
+                        family = "multinomial",
+                        lambda_search = TRUE)
+) # 981.54s ~ 15 mins for full data # 684s ~ 11 mins for split data
+
+# Let's compare the performance of the two GLMs
+glm_perf1 <- h2o.performance(model = glm_fit1,
+                             newdata = test)
+glm_perf2 <- h2o.performance(model = glm_fit2,
+                             newdata = test)
+
+# Print model performance
+# glm_perf1
+# glm_perf2
+
+h2o.mse(glm_perf1) # 0.2378
+h2o.mse(glm_perf2) # 0.2176
+
+# AUC applicable for binomial classification
+# h2o.auc(glm_perf1)  
+# h2o.auc(glm_perf2)
+
+# Error: DistributedException: 'null', caused by java.lang.ArrayIndexOutOfBoundsException
+# error due to unarranged x, y for test set
+h2o.predict(glm_fit1, newdata = data_for_pred)
+h2o.predict(glm_fit2, newdata = data_for_pred)
+
+p2_glm = h2o.predict(glm_fit2, newdata = data_for_pred)
+p2_glm_output = as.data.frame(test_p2$Modelvar)
+p2_glm_output$est_var = colnames(p2_glm[, -1])[max.col(p2_glm[, -1], ties.method="first")]
+colnames(p2_glm_output) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_glm_output$est_var)) # identified no. of variants predicted
+
+sum(p2_glm_output$est_var == p2_glm_output$act_var)/nrow(p2_glm_output) # accuracy level
+
+p2_glm_for_output = as.data.frame(p2_glm_output) # weird format, blanks repl with 'X'
+
+write.csv(p2_glm_for_output, file = 'glm_p2.csv')
+
+# P2: h2o Random Forest ---------------------------------------------------
+
+# Ref: https://github.com/h2oai/h2o-tutorials/blob/master/h2o-open-tour-2016/chicago/intro-to-h2o.R
+
+h2o.init(nthreads = -1, 
+         min_mem_size="4g", max_mem_size = "8g"
 )
 
 
-svm_p2_est = predict(svm_p2, newdata=test_perodua[,-c(1:2, 4:5, 17)])
-
-1-sum(test_perodua[,6]==svm_p2_est)/nrow(test_perodua)
-
-# Error info:
-# 20% (incl MfgYr, CC)
-# 37% (excl MfgYr, CC)
-
-p2_tbl = table(test_perodua[,6], svm_p2_est)
-write.csv(p2_tbl,"p2.csv")
+rf_fit1 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "rf_fit1",
+                            seed = 1)
 
 
-# Proton: All -------------------------------------------------------------
+rf_fit2 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "rf_fit2",
+                            #validation_frame = valid,  #only used if stopping_rounds > 0
+                            ntrees = 100, # default 50, more shud increase perf
+                            seed = 1)
 
-# Note: Check for NAs in data first
-train_proton = dplyr::filter(training_data, Brand=="Proton")
-plyr::count(train_proton$Modelvar)
+# Let's compare the performance of the two RFs
+rf_perf1 <- h2o.performance(model = rf_fit1,
+                            newdata = test)
+rf_perf2 <- h2o.performance(model = rf_fit2,
+                            newdata = test)
 
-test_proton = dplyr::filter(testing_data, Brand=="Proton" & 
-                              !Modelvar %in% c('', '-', '0', '#N/A'))
-head(plyr::count(test_proton$Modelvar))
+# Print model performance
+rf_perf1
+rf_perf2
 
-train_proton$Modelvar = as.character(train_proton$Modelvar)
-test_proton$Modelvar = as.character(test_proton$Modelvar)
+# Retreive test set AUC
+h2o.mse(rf_perf1) # 0.2111
+h2o.mse(rf_perf2) # 0.2108
 
-# clean up spaces / upper-lower char and re-factor
-train_proton$Modelvar = as.factor(toupper(trimws(train_proton$Modelvar)))
-test_proton$Modelvar = as.factor(toupper(trimws(test_proton$Modelvar)))
+system.time(rf_fit3 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "rf_fit3",
+                            seed = 1,
+                            nfolds = 5) # cross-validation perf
+) # 92.68s, 1.5 mins
 
-plyr::count(train_proton$Modelvar)
-plyr::count(test_proton$Modelvar)
+h2o.mse(rf_fit3, xval=TRUE)
 
-# filter for variants with size > 30
-train_proton = train_proton %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
+rf_pred_p2 = h2o.predict(rf_fit3, data_for_pred) # need to manually id class with highest prob per row
 
-test_proton = test_proton %>% 
-  group_by(Modelvar) %>%
-  filter(n()>30) %>%
-  as.data.frame()
+p2_output_rf = as.data.frame(test_p2$Modelvar)
+p2_output_rf$est_var = colnames(rf_pred_p2[, -1])[max.col(rf_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_rf) = c('act_var', 'est_var')
 
-train_proton = droplevels(train_proton)
-test_proton = droplevels(test_proton)
+dim(plyr::count(p2_output_rf$est_var)) # identified no. of variants predicted
+sum(p2_output_rf$est_var == p2_output_rf$act_var)/nrow(p2_output_rf) # accuracy level
 
-proton_lvl = unique(c(levels(train_proton$Modelvar),levels(test_proton$Modelvar)))
-train_proton$Modelvar = factor(train_proton$Modelvar, levels = proton_lvl)
-test_proton$Modelvar = factor(test_proton$Modelvar, levels = proton_lvl)
+# P2: h2o GBM -------------------------------------------------------------
 
-all.equal.factor(train_proton$Modelvar, test_proton$Modelvar)
+gbm_fit1 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    model_id = "gbm_fit1",
+                    seed = 1)
 
-# standardize models
-proton_mdl = unique(levels(train_proton$Model), levels(test_proton$Model))
-train_proton$Model = factor(train_proton$Model, levels = proton_mdl)
-test_proton$Model = factor(test_proton$Model, levels = proton_mdl)
+gbm_fit2 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    model_id = "gbm_fit2",
+                    #validation_frame = valid,  #only used if stopping_rounds > 0
+                    ntrees = 500, # default 50, need to take care of overfitting
+                    seed = 1)
 
-train_proton$CC_scl = scale(train_proton$CC_adj)
-test_proton$CC_scl = scale(test_proton$CC_adj)
+gbm_fit3 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    model_id = "gbm_fit3",
+                    validation_frame = valid,  #only used if stopping_rounds > 0
+                    ntrees = 500,
+                    score_tree_interval = 5,      #used for early stopping
+                    stopping_rounds = 3,          #used for early stopping
+                    stopping_metric = "AUTO",      #used for early stopping
+                    stopping_tolerance = 0.0005,  #used for early stopping
+                    seed = 1)
+
+system.time(gbm_fit4 <- h2o.gbm(
+                        ## standard model parameters
+                        x = x, 
+                        y = y, 
+                        training_frame = train, 
+                        validation_frame = valid,
+                        model_id = "gbm_fit4",
+                        
+                        ## more trees is better if the learning rate is small enough 
+                        ## here, use "more than enough" trees - we have early stopping
+                        ntrees = 10000,                                                            
+                        
+                        ## smaller learning rate is better (this is a good value for most datasets, but see below for annealing)
+                        learn_rate=0.01,                                                         
+                        
+                        ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
+                        stopping_rounds = 5, stopping_tolerance = 1e-4, stopping_metric = "AUTO", 
+                        
+                        ## sample 80% of rows per tree
+                        sample_rate = 0.8,                                                       
+                        
+                        ## sample 80% of columns per split
+                        col_sample_rate = 0.8,                                                   
+                        
+                        ## fix a random number generator seed for reproducibility
+                        seed = 1,                                                             
+                        
+                        ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+                        score_tree_interval = 10                                                 
+                      )
+) # 118.95s, 2 mins
+
+gbm_perf1 <- h2o.performance(model = gbm_fit1,
+                             newdata = test)
+gbm_perf2 <- h2o.performance(model = gbm_fit2,
+                             newdata = test)
+gbm_perf3 <- h2o.performance(model = gbm_fit3,
+                             newdata = test)
+gbm_perf4 <- h2o.performance(model = gbm_fit4,
+                             newdata = test)
+
+# Print model performance
+# gbm_perf1
+
+# Retreive test set MSE
+h2o.mse(gbm_perf1) # 0.1952
+h2o.mse(gbm_perf2) # 0.1954
+h2o.mse(gbm_perf3) # 0.1952
+h2o.mse(gbm_perf4) # 0.1948
+
+h2o.scoreHistory(gbm_fit2) # scoring based on training set only
+h2o.scoreHistory(gbm_fit3) # earlier stopping at no of trees, both training & validation perf metrics available
+
+plot(gbm_fit3, 
+     timestep = "number_of_trees", 
+     metric = "Classification_error")
+plot(gbm_fit3, 
+     timestep = "number_of_trees", 
+     metric = "logloss")
+
+gbm_pred_p2 = h2o.predict(gbm_fit3, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_gbm = as.data.frame(test_p2$Modelvar)
+p2_output_gbm$est_var = colnames(gbm_pred_p2[, -1])[max.col(gbm_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_gbm) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_gbm$est_var)) # identified no. of variants predicted
+sum(p2_output_gbm$est_var == p2_output_gbm$act_var)/nrow(p2_output_gbm) # accuracy level
 
 
-# Identify predictors: Proton All ---------------------------------------------------------
+# P2: h2o GBM Grid Search -------------------------------------------------
 
-# Identify useful predictors
-plyr::count(train_proton, "Transm") # filtered for autos
-plyr::count(train_proton, "CC") # 3 different ways of CC Groups: 12-20, 1000-2000, >10000
-plyr::count(train_proton, "Airbag")
-plyr::count(train_proton, "Leather")
-plyr::count(train_proton, "Nav")
-plyr::count(train_proton, "ABS")
-plyr::count(train_proton, "SportRims")
-plyr::count(train_proton, "RevCam")
-plyr::count(train_proton, "PowDoor")
-plyr::count(train_proton, "TouchScreen") # all N/A
-plyr::count(train_proton, "ClimaCtrl")
-
-test_search = grepl("leather", test_proton$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-test_search = grepl("light", test_proton$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-# drop non-useful predictors
-drops = c("CC", "TouchScreen")
-train_proton = train_proton[, !names(train_proton) %in% drops]
-test_proton = test_proton[, !names(test_proton) %in% drops]
-
-leather_protonTr = grepl("leather", train_proton$Features, ignore.case=TRUE)
-leather_protonTt = grepl("leather", test_proton$Features, ignore.case=TRUE)
-
-light_protonTr = grepl("light", train_proton$Features, ignore.case=TRUE)
-light_protonTt = grepl("light", test_proton$Features, ignore.case=TRUE)
-
-train_proton$Leather = leather_protonTr
-test_proton$Leather = leather_protonTt
-
-train_proton$Light = light_protonTr
-test_proton$Light = light_protonTt
-
-colnames(train_proton) == colnames(test_proton)
-
-colnames(train_proton)
-str(train_proton)
-
-# SVM: Proton All ---------------------------------------------------------
-
-
-
-colnames(train_proton)
-library(e1071)
-system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = train_proton[,-c(1:2, 4:5, 17)],
-                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+hyper_params = list(max_depth = seq(1,20,2) # usual depth = 10, max_depth = c(4,6,8,12,16,20) faster for larger datasets
+                    # learn_rate = 0.05, # seq(0.05, 0.1, 0.01), # smaller learning rate is better
+                    ## since we have learning_rate_annealing, we can afford to start with a bigger learning rate
+                                 
+                    # learn_rate_annealing = 0.99 # learning rate annealing: learning_rate shrinks by 1% after every tree 
+                    ## (use 1.00 to disable, but then lower the learning_rate)
+                    
+                    
+                    # sample_rate = seq(0.2, 1, 0.01), # sample % of rows per tree
+                    # col_sample_rate = seq(0.2, 1, 0.01), # sample % of columns per split
+                    # col_sample_rate_per_tree = seq(0.2, 1, 0.01)
+                    # col_sample_rate_change_per_level = seq(0.9, 1.1, 0.01), # col sampling / split as a function of split depth
+                    # min_rows = 2^seq(0, log2(nrow(train))-1, 1), # number of min rows in terminal node
+                    # nbins = 2^seq(4, 10, 1), # no. of bins for split-finding for cont/int cols
+                    # nbins_cats = 2^seq(4, 12, 1), # for cat col
+                    # min_split_improvement = c(0, 1e-8, 1e-6, 1e-4) # min relative error improvement thresholds for a split to occur
+                    # histogram_type = c("UniformAddptive", 'QuantilesGlobal', 'RoundRobin') # QG, RR good for num col with outliers
 )
+
+search_criteria <- list(strategy = "RandomDiscrete", # 'Cartesian'
+                        max_runtime_secs = 600,
+                        # max_models = 5,
+                        stopping_rounds = 5,
+                        stopping_metric = 'AUTO',
+                        stopping_tolerance = 1e-3
+)
+
+system.time(grid <- h2o.grid(
+                            hyper_params = hyper_params,
+                            search_criteria = search_criteria,
+                            algorithm="gbm",
+                            grid_id="depth_grid", # identifier for the grid, to later retrieve it
+                            
+                            x = x, 
+                            y = y, 
+                            training_frame = train, 
+                            validation_frame = valid,
+                            
+                            ntrees = 10000, ## more trees is better if the learning rate is small enough 
+                            ## here, use "more than enough" trees - we have early stopping
+                            
+                            seed = 1, 
+                            learn_rate = 0.01,
+                            score_tree_interval = 10 # score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+                            )
+)
+
+grid@summary_table # default ordered by logloss
+## sort the grid models by preferred metric
+sortedGrid <- h2o.getGrid(grid@grid_id, sort_by="mse", decreasing = FALSE)
+h2o.mse(h2o.performance(h2o.getModel(sortedGrid@model_ids[[1]]))) # 0.1537
+
+## find the range of max_depth for the top 5 models - can be used to set for further tuning
+topDepths = sortedGrid@summary_table$max_depth[1:5]
+minDepth = min(as.numeric(topDepths))
+maxDepth = max(as.numeric(topDepths))
+minDepth
+maxDepth
+
+# get metric of top 5 models
+for (i in 1:5) {
+  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
+  print(h2o.mse(h2o.performance(gbm, valid = TRUE)))
+}
+
+gbm <- h2o.getModel(sortedGrid@model_ids[[1]])
+gbm@parameters # ntrees = 10000
+h2o.mse(h2o.performance(gbm, newdata = test)) # check perf with test set
+
+gbm_pred_p2 = h2o.predict(gbm, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_gbm = as.data.frame(test_p2$Modelvar)
+p2_output_gbm$est_var = colnames(gbm_pred_p2[, -1])[max.col(gbm_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_gbm) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_gbm$est_var)) # identified no. of variants predicted
+sum(p2_output_gbm$est_var == p2_output_gbm$act_var)/nrow(p2_output_gbm) # accuracy level
+
+# blending technique
+prob = NULL
+k=10
+for (i in 1:k) { # avg of 10 models in grid search
+  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
+  if (is.null(prob)) prob = h2o.predict(gbm, test)
+  else prob = prob + h2o.predict(gbm, test)
+}
+prob <- prob/k
+head(prob)
+
+
+# P2: h2o Deep Learning ---------------------------------------------------
+# Ref: http://htmlpreview.github.io/?https://github.com/ledell/sldm4-h2o/blob/master/sldm4-deeplearning-h2o.html
+# Ref: https://www.slideshare.net/0xdata/h2o-world-top-10-deep-learning-tips-tricks-arno-candel?from_action=save
+
+library(h2o)
+h2o.init(min_mem_size="4g", max_mem_size = "8g")
+
+train = as.h2o(train_p2)
+test = as.h2o(test_p2)
+
+h2o.describe(train)
+h2o.describe(test)
+
+y <- 'Modelvar'
+x <- setdiff(names(df), y)
+
+dl_fit1 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "dl_fit1",
+                            # distribution = can be set
+                            hidden = c(20,20), # default is c(200,200), i.e. 2 hidden layers, with 200 neurons
+                            seed = 1) # not reproducibe if ran on multi core
+
+dl_fit2 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "dl_fit2",
+                            epochs = 50, # default 10, more will increase perf, but may overfit
+                            hidden = c(20,20),
+                            stopping_rounds = 0,  # disable early stopping
+                            seed = 1)
+
+dl_fit3 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "dl_fit3",
+                            epochs = 50,
+                            hidden = c(20,20),
+                            nfolds = 3,                            #used for early stopping
+                            score_interval = 1,                    #used for early stopping
+                            stopping_rounds = 5,                   #used for early stopping
+                            stopping_metric = "misclassification", #used for early stopping
+                            stopping_tolerance = 1e-3,             #used for early stopping
+                            # score_validation_samples=N #for sampling validation dataset 
+                            # score_validation_samplings = 'Stratified' #for multi-class / imbalanced
+                            # l1=1e-4, l2=1e-4, hidden_dropout_ratio = [0.2, 0.3] #use regularization
+                            seed = 1)
+
+# perform hyperparameter search
+# random / grid search
+# hidden (2-5 layers, 10-2000 neurons per layer)
+# l1/ l2
+# adaptive_rate: true (rho, epsilon), false (rate, rate_annealing, rate_decay, momentum_start, momentum_stable, momentum_ramp)
+
+# if data is sparse / categorical predictors:
+# build tiny DL model, use h2o.deepfeatures() to extract lower-dim features
+# use random projection of categorical features into N-dim space, by 'max_categorical_features=N'
+# use GLRM to reduce dim of dataset
+# set 'sparse=True'
+
+dl_perf1 <- h2o.performance(model = dl_fit1, newdata = test)
+dl_perf2 <- h2o.performance(model = dl_fit2, newdata = test)
+dl_perf3 <- h2o.performance(model = dl_fit3, newdata = test)
+
+# Retreive test set MSE
+h2o.mse(dl_perf1) # 0.2225
+h2o.mse(dl_perf2) # 0.2085
+h2o.mse(dl_perf3) # 0.2057
+
+# utility functions to inspect models
+h2o.scoreHistory(dl_fit3)
+h2o.confusionMatrix(dl_fit3)
+
+dl_fit3@parameters
+plot(dl_fit3,
+     timestep = "epochs",
+     metric = "classification_error")
+
+# Get the CV models from the `dl_fit3` object
+cv_models <- sapply(dl_fit3@model$cross_validation_models, 
+                    function(i) h2o.getModel(i$name))
+
+# Plot the scoring history over time
+plot(cv_models[[1]], 
+     timestep = "epochs", 
+     metric = "classification_error")
+
+dl_pred_p2 = h2o.predict(dl_fit3, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_dl = as.data.frame(test_p2$Modelvar)
+p2_output_dl$est_var = colnames(dl_pred_p2[, -1])[max.col(dl_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_dl) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_dl$est_var)) # identified no. of variants predicted
+sum(p2_output_dl$est_var == p2_output_dl$act_var)/nrow(p2_output_dl) # accuracy level
+
+
+# P2: DL Grid Search ----------------------------------------------------------
+
+activation_opt <- c("Rectifier", 'RectifierWithDropuout', "Maxout", "Tanh")
+l1_opt <- c(0, 0.00001, 0.0001, 0.001, 0.01, 0.1)
+l2_opt <- c(0, 0.00001, 0.0001, 0.001, 0.01, 0.1)
+
+hyper_params <- list(activation = activation_opt, l1 = l1_opt, l2 = l2_opt)
+search_criteria <- list(strategy = "RandomDiscrete", max_runtime_secs = 600)
+
+dl_grid <- h2o.grid("deeplearning", x = x, y = y,
+                    grid_id = "dl_grid",
+                    training_frame = train,
+                    validation_frame = valid,
+                    seed = 1,
+                    hidden = c(20,20),
+                    hyper_params = hyper_params,
+                    search_criteria = search_criteria
+)
+
+dl_gridperf <- h2o.getGrid(grid_id = 'dl_grid',
+                           sort_by = 'logloss'
+                           # decreasing = TRUE
+)
+
+print(dl_gridperf)
+dl_gridperf@summary_table
+
+best_dl_model_id <- dl_gridperf@model_ids[[1]]
+best_dl <- h2o.getModel(best_dl_model_id)
+best_dl@allparameters
+
+best_dl_perf <- h2o.performance(model = best_dl, newdata = test)
+h2o.mse(best_dl_perf) # 0.2179 (logloss), 0.2154 (mse)
+
+# P2: DL Predict --------------------------------------------------------------
+
+dl_pred_p2 = h2o.predict(best_dl, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_dl = as.data.frame(test_p2$Modelvar)
+p2_output_dl$est_var = colnames(dl_pred_p2[, -1])[max.col(dl_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_dl) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_dl$est_var)) # identified no. of variants predicted
+sum(p2_output_dl$est_var == p2_output_dl$act_var)/nrow(p2_output_dl) # accuracy level
+
+# write.csv(p2_output_dl, file = 'p2_dl.csv')
+
+# P2: h20 AutoML(Issues)-----------------------------------------------------------------
+
+str(train_p2)
+df = train_p2
+
+library(h2o)
+h2o.init(min_mem_size="2g", max_mem_size = "4g")
+h2o.shutdown()
+
+df <- as.h2o(df)
+
+h2o.describe(df)
+
+y <- 'Modelvar'
+# y <- 'Res.Price'
+x <- setdiff(names(df), y)
+
+splits <- h2o.splitFrame(df, ratios = c(0.7, .15) , seed = 1)
+train <- splits[[1]]
+valid <- splits[[2]]
+test <- splits[[3]]
+
+aml_p2 <- h2o.automl(x = x,
+                     y = y,
+                     training_frame = train,
+                     nfolds = 5,
+                     keep_cross_validation_predictions = TRUE,
+                     validation_frame = valid,
+                     leaderboard_frame = test,
+                     # exclude_algos = "GBM", # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
+                     max_runtime_secs = 600, # max_models
+                     seed = 1
+                     # project_name = "p2_final_price"
+)
+
+print(aml_p2@leaderboard)
+
+# Predictions
+
+df_test <- as.h2o(test_p2)
+
+pred <- h2o.predict(aml_p2, df_test) # Issue: multi level classification return more data than total obs
+
+p2_h2o_est = as.vector(pred)
+
+# tabled predictions
+p2_h2o_tbl = cbind('Actual Var' = as.character(test_p2$Modelvar), 
+                   'Est Var' = p2_h2o_est
+)
+
+
+write.csv(p2_h2o_tbl, file = 'p2_h2o.csv')
+
+# Proton (P1): All -------------------------------------------------------------
+
+train_p1 = dplyr::filter(training_data, Brand=="PROTON")
+test_p1 = dplyr::filter(testing_data, Brand=="PROTON")
+
+train_p1$CC_scl = as.numeric(scale(train_p1$CC_adj))
+test_p1$CC_scl = as.numeric(scale(test_p1$CC_adj))
+
+# filter training set only for variants with size >20
+train_p1 = train_p1 %>% 
+  group_by(Modelvar) %>%
+  dplyr::filter(n()>20) %>%
+  as.data.frame()
+
+train_p1 = droplevels(train_p1)
+test_p1 = droplevels(test_p1)
+
+# standardize Variant levels
+p1_var = unique(c(levels(train_p1$Modelvar),levels(test_p1$Modelvar)))
+train_p1$Modelvar = factor(train_p1$Modelvar, levels = p1_var)
+test_p1$Modelvar = factor(test_p1$Modelvar, levels = p1_var)
+
+summary(train_p1$Modelvar)
+summary(test_p1$Modelvar)
+
+# standardize Model levels
+p1_mdl = unique(c(levels(train_p1$Model),levels(test_p1$Model)))
+train_p1$Model = factor(train_p1$Model, levels = p1_mdl)
+test_p1$Model = factor(test_p1$Model, levels = p1_mdl)
+
+summary(train_p1$Model)
+summary(test_p1$Model)
+
+# standardize MfgYr levels
+p1_yr = unique(c(levels(train_p1$MfgYr), levels(test_p1$MfgYr)))
+train_p1$MfgYr = factor(train_p1$MfgYr, levels = p1_yr)
+test_p1$MfgYr = factor(test_p1$MfgYr, levels = p1_yr)
+
+summary(train_p1$MfgYr)
+summary(test_p1$MfgYr)
+
+
+
+# P1: Identify predictors-----------------------------------------------------
+to_drop = as.character()
+for (i in 9:(length(colnames(train_p1))-2)){
+  test = plyr::count(train_p1, colnames(train_p1)[i])
+  if (length(test$freq) == 1){ 
+    # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
+    to_drop = c(paste(colnames(train_p1)[i]), to_drop)
+  }
+}
+
+drops = c(to_drop, "ID", "Brand", "Features", "Price", "CC", "CC_adj")
+
+# drop all non-relevant predictors
+train_p1 = train_p1[, !names(train_p1) %in% drops]
+test_p1 = test_p1[, !names(test_p1) %in% drops]
+
+colnames(train_p1) == colnames(test_p1)
+colnames(train_p1)
+
+
+
+
+# P1: SVM -----------------------------------------------------------------
+dim(train_p1)
+
+system.time(tune_radial_p1 <- tune(svm, Modelvar ~ ., data = train_p1,
+                                   kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+
+
+svm_p1 = svm(Modelvar ~., data = train_p1,
+             kernel="radial", cost=tune_radial_p1$best.parameters$cost,
+             gamma=tune_radial_p1$best.parameters$gamma, trace=F
+)
+
+svm_est_p1 = predict(svm_p1, newdata=test_p1)
+
+p1_est_lvl = unique(c(levels(svm_est_p1), levels(test_p1$Modelvar)))
+test_p1$Modelvar = factor(test_p1$Modelvar, levels = p1_est_lvl)
+svm_est_p1 = factor(svm_est_p1, levels = p1_est_lvl)
+
+1-sum(test_p1$Modelvar==svm_est_p1)/nrow(test_p1)
+
+p1_tbl = table(test_p1$Modelvar, svm_est_p1)
+write.csv(p1_tbl,"p1.csv")
+
+c(colnames(train_p1), dim(train_p1))
+
+# 20k obs, 11 var
+# user   system  elapsed 
+# 16577.06    76.80 16814.12 
 
 # 10,000 obs, (19-5) var
 # user  system elapsed 
@@ -1723,525 +2172,24 @@ system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = train_proton[,-c(1
 # 10,000 obs, (17-5) var
 # user  system elapsed 
 # 5458.87   17.33 6132.82 ~102 mins
-svm_tune_radial$best.parameters 
-
-# excl. manf yr, CC cost=10, gamma=0.1 
-
-svm_proton = svm(Modelvar ~., data = train_proton[,-c(1:2, 4:5, 17)],
-                 kernel="radial", cost=svm_tune_radial$best.parameters$cost,
-                 gamma=svm_tune_radial$best.parameters$gamma, trace=F
-)
-
-
-sum(is.na(test_proton)) # 963 NAs
-summary(test_proton) # 963 NAs located at Model
-str(test_proton)
-
-test_proton$CC_scl = as.numeric(test_proton$CC_scl) # convert list to 1d vectors
-test_proton_f = dplyr::filter(test_proton, !is.na(Model))
-summary(test_proton_f)
-
-svm_proton_est = predict(svm_proton, newdata=test_proton_f[,-c(1:2, 4:5, 17)])
-
-1-sum(test_proton_f[,6]==svm_proton_est)/nrow(test_proton_f)
 
 # Error info:
 # 16% (incl MfgYr, CC)
 # 32% (took out NAs in Model, excl MfgYr, CC)
 
-proton_tbl = table(test_proton_f[,6], svm_proton_est)
-write.csv(proton_tbl,"proton.csv")
 
 
-# Case: Myvi Auto --------------------------------------------------------------
 
-plyr::count(training_myvi_auto, "Modelvar")
-plyr::count(testing_myvi_auto, "Modelvar")
 
-# convert variants to text
-training_myvi_auto$Modelvar = as.character(training_myvi_auto$Modelvar)
-testing_myvi_auto$Modelvar = as.character(testing_myvi_auto$Modelvar)
 
+# REF ---------------------------------------------------------------------
 
-# clean up spaces / upper-lower char and re-factor
-training_myvi_auto$Modelvar = as.factor(toupper(trimws(training_myvi_auto$Modelvar)))
-testing_myvi_auto$Modelvar = as.factor(toupper(trimws(testing_myvi_auto$Modelvar)))
+# SVM Example: https://afit-r.github.io/svm
 
-# occurences of manual / other variants
-levels(testing_myvi_auto$Modelvar)
-select_myvi_auto = c('1.3', '1.3 (A) EZ', '1.3 (A) EZI', '1.3 (A) SE', '1.3 (A) X', '1.5 SE (A)')
+# manual edit factor levels
+levels(df$Modelvar)[levels(df$Modelvar)%in%c("1.3 (A) EZi", "1.3 (A) EZI")] = "1.3 (A) EZi"
 
-training_myvi_auto = training_myvi_auto[training_myvi_auto$Modelvar %in% select_myvi_auto,]
-testing_myvi_auto = testing_myvi_auto[testing_myvi_auto$Modelvar %in% select_myvi_auto,]
-
-training_myvi_auto = droplevels(training_myvi_auto)
-testing_myvi_auto = droplevels(testing_myvi_auto)
-
-myvi_auto_levels = unique(c(levels(testing_myvi_auto$Modelvar),levels(training_myvi_auto$Modelvar)))
-
-training_myvi_auto$Modelvar = factor(training_myvi_auto$Modelvar, levels = myvi_auto_levels)
-testing_myvi_auto$Modelvar = factor(testing_myvi_auto$Modelvar, levels = myvi_auto_levels)
-
-# Case: Myvi Manual -------------------------------------------------------
-
-training_myvi_man$Modelvar = as.character(training_myvi_man$Modelvar)
-testing_myvi_man$Modelvar = as.character(testing_myvi_man$Modelvar)
-
-training_myvi_man$Modelvar = as.factor(toupper(trimws(training_myvi_man$Modelvar)))
-testing_myvi_man$Modelvar = as.factor(toupper(trimws(testing_myvi_man$Modelvar)))
-
-plyr::count(test$Modelvar)
-
-plyr::count(training_myvi_man, "Modelvar")
-plyr::count(testing_myvi_man, "Modelvar")
-
-# filter for variants with size > 50
-training_myvi_man = training_myvi_man %>% 
-  group_by(Modelvar) %>%
-  filter(n()>50) %>%
-  as.data.frame()
-
-testing_myvi_man = testing_myvi_man %>% 
-  group_by(Modelvar) %>%
-  filter(n()>50) %>%
-  as.data.frame()
-
-training_myvi_man = droplevels(training_myvi_man)
-testing_myvi_man = droplevels(testing_myvi_man)
-
-dplyr::all_equal(levels(training_myvi_man$Modelvar), levels(testing_myvi_man$Modelvar))
-
-# if not all_equal = False, then:
-# myvi_man_levels = unique(c(levels(testing_myvi_man$Modelvar),levels(training_myvi_man$Modelvar)))
-# training_myvi_man$Modelvar = factor(training_myvi_man$Modelvar, levels = myvi_man_levels)
-# testing_myvi_man$Modelvar = factor(testing_myvi_man$Modelvar, levels = myvi_man_levels)
-
-
-
-# Features Selection (Myvi Auto) -----------------------------------------------
-
-# Identify useful predictors
-plyr::count(training_myvi_auto, "Transm") # filtered for autos
-plyr::count(training_myvi_auto, "CC")
-plot(training_myvi_auto$CC) # 2 distinct different CCs but there are also spread of other values
-plyr::count(training_myvi_auto, "Airbag")
-plyr::count(training_myvi_auto, "Leather")
-plyr::count(training_myvi_auto, "Nav")
-plyr::count(training_myvi_auto, "ABS")
-plyr::count(training_myvi_auto, "SportRims")
-plyr::count(training_myvi_auto, "RevCam")
-plyr::count(training_myvi_auto, "PowDoor")
-plyr::count(training_myvi_auto, "TouchScreen") # all N/A
-plyr::count(training_myvi_auto, "ClimaCtrl")
-
-# drop non-useful predictors
-drops = c("Transm", "TouchScreen")
-training_myvi_auto = training_myvi_auto[, !names(training_myvi_auto) %in% drops]
-str(training_myvi_auto)
-
-testing_myvi_auto = testing_myvi_auto[, !names(testing_myvi_auto) %in% drops]
-str(testing_myvi_auto)
-
-test_search = grepl("leather", testing_myvi_auto$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-test_search = grepl("light", testing_myvi_auto$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-leather_train_myvi_auto = grepl("leather", training_myvi_auto$Features, ignore.case=TRUE)
-leather_test_myvi_auto = grepl("leather", testing_myvi_auto$Features, ignore.case=TRUE)
-
-light_train_myvi_auto = grepl("light", training_myvi_auto$Features, ignore.case=TRUE)
-light_test_myvi_auto = grepl("light", testing_myvi_auto$Features, ignore.case=TRUE)
-
-training_myvi_auto$Leather = leather_train_myvi_auto
-testing_myvi_auto$Leather = leather_test_myvi_auto
-
-training_myvi_auto$Light = light_train_myvi_auto
-testing_myvi_auto$Light = light_test_myvi_auto
-
-colnames(training_myvi_auto) == colnames(testing_myvi_auto)
-
-
-# Feature Selection (Myvi Manual) -----------------------------------------
-
-# Identify useful predictors
-plyr::count(training_myvi_man, "Transm") # filtered for manual
-plyr::count(training_myvi_man, "CC")
-plot(training_myvi_man$CC) # 2 distinct different CCs but there are also spread of other values
-plyr::count(training_myvi_man, "Airbag")
-plyr::count(training_myvi_man, "Leather")
-plyr::count(training_myvi_man, "Nav")
-plyr::count(training_myvi_man, "ABS")
-plyr::count(training_myvi_man, "SportRims")
-plyr::count(training_myvi_man, "RevCam")
-plyr::count(training_myvi_man, "PowDoor")
-plyr::count(training_myvi_man, "TouchScreen") # all N/A
-plyr::count(training_myvi_man, "ClimaCtrl")
-
-# drop non-useful predictors
-drops = c("Transm", "TouchScreen")
-training_myvi_man = training_myvi_man[, !names(training_myvi_man) %in% drops]
-# str(training_myvi_man)
-
-testing_myvi_man = testing_myvi_man[, !names(testing_myvi_man) %in% drops]
-# str(testing_myvi_man)
-
-test_search = grepl("leather", testing_myvi_man$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-test_search = grepl("light", testing_myvi_man$Features, ignore.case=TRUE)
-plyr::count(test_search) # OK
-
-leather_train_myvi_auto = grepl("leather", training_myvi_man$Features, ignore.case=TRUE)
-leather_test_myvi_auto = grepl("leather", testing_myvi_man$Features, ignore.case=TRUE)
-
-light_train_myvi_auto = grepl("light", training_myvi_man$Features, ignore.case=TRUE)
-light_test_myvi_auto = grepl("light", testing_myvi_man$Features, ignore.case=TRUE)
-
-training_myvi_man$Leather = leather_train_myvi_auto
-testing_myvi_man$Leather = leather_test_myvi_auto
-
-training_myvi_man$Light = light_train_myvi_auto
-testing_myvi_man$Light = light_test_myvi_auto
-
-colnames(training_myvi_man) == colnames(testing_myvi_man)
-
-# SVM: Myvi Auto ---------------------------------------------------------
-
-library(e1071)
-
-# for merged dataset: took too long to run & produced error, filter first 3000 obs to train
-str(training_myvi_auto)
-
-system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = training_myvi_auto[,-c(1:4, 8)],
-                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
-            )
-# for one dataset ~3,000 obs  # cost = 10, gamma = 0.1
-# user  system elapsed 
-# 341.22    1.87  345.62 
-
-# for 6,000 obs (excl price)
-# user  system elapsed 
-# 1272.97    6.91 1291.64 
-
-# for last 3,000+ obs (excl price)  # cost = 10, gamma = 1.1
-# user  system elapsed 
-# 539.41    3.09  568.40 
-
-# for last 3,000+ obs (excl CC)  # cost = 100, gamma = 0.1
-# user  system elapsed 
-# 505.91    1.51  525.30 
-
-svm_tune_radial$best.parameters
-
-# error rate is still high ~50%
-svm_myvi_auto = svm(Modelvar ~ ., data = training_myvi_auto[,-c(1:4, 8)], trace=F,
-                    cost = svm_tune_radial$best.parameters$cost, gamma = svm_tune_radial$best.parameters$gamma)
-svm_pred_myvi_auto = predict(svm_myvi_auto, newdata=testing_myvi_auto[,-c(1:4, 8)])
-
-1-sum(testing_myvi_auto[,6]==svm_pred_myvi_auto)/nrow(testing_myvi_auto)
-# Error rate
-# without price predictor 46% error rate
-# with price predictor 54% error rate
-# w/o cc 30%
-
-
-# Issues:
-# svm cant predict 1.3, 1.3
-# unless use more recent data
-
-table('Model: SVM' = svm_pred_myvi_auto, testing_myvi_auto[,6])
-
-model_price_myvi_auto = cbind.data.frame(testing_myvi_auto$Modelvar, svm_pred_myvi_auto, testing_myvi_auto$Price)
-names(model_price_myvi_auto) = c('ActualModel', 'EstModel', 'Price')
-
-myvi_auto_actual_price = model_price_myvi_auto %>% 
-  group_by(ActualModel) %>%
-  dplyr::summarise(Price = mean(Price))
-
-myvi_auto_est_price = model_price_myvi_auto %>%
-  group_by(EstModel) %>%
-  dplyr::summarise(Price = mean(Price))
-
-cbind.data.frame(myvi_auto_actual_price, 'Est Price' = myvi_auto_est_price$Price,
-                 'Diff' = abs(myvi_auto_actual_price$Price - myvi_auto_est_price$Price))
-
-
-
-
-# # # Improvements: # # #
-
-# categorize CC / scale after filtering for models
-# test caret
-# test gradient boosting
-
-
-# # # # # # # # # # # # #
-
-
-# SVM: Myvi Manual --------------------------------------------------------
-
-dim(training_myvi_man)
-str(training_myvi_man)
-
-system.time(svm_tune_radial <- tune(svm, Modelvar ~ ., data = training_myvi_man[,-c(1:4, 8)],
-                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
-)
-
-# 800 obs, (17 - x) cols
-# user  system elapsed 
-# 41.33    0.16   42.62 
-
-svm_tune_radial$best.parameters 
-# cost= 10, gamma=0.1 full, excl price
-# cost=100, gamma=0.1 excl c(price,CC), CC
-
-svm_myvi_man = svm(Modelvar ~ ., data = training_myvi_man[,-c(1:4, 8)], trace=F,
-                    cost = 100, gamma = 0.1)
-svm_pred_myvi_man = predict(svm_myvi_man, newdata=testing_myvi_man[,-c(1:4, 8)])
-
-1-sum(testing_myvi_man[,6]==svm_pred_myvi_man)/nrow(testing_myvi_man)
-
-# Error rate info:
-# 81% full model
-# 87% excl price
-# 43% excl price, CC
-# 66% excl CC
-
-table('Model: SVM' = svm_pred_myvi_man, testing_myvi_man[,6]) # compare differences
-
-model_price_myvi_man = cbind.data.frame(testing_myvi_man$Modelvar, svm_pred_myvi_man, testing_myvi_man$Price)
-names(model_price_myvi_man) = c('ActualModel', 'EstModel', 'Price')
-
-myvi_man_actual_price = model_price_myvi_man %>% 
-  group_by(ActualModel) %>%
-  dplyr::summarise(Price = mean(Price))
-
-myvi_man_est_price = model_price_myvi_man %>%
-  group_by(EstModel) %>%
-  dplyr::summarise(Price = mean(Price))
-
-cbind.data.frame(myvi_man_actual_price, 'Est Price' = myvi_man_est_price$Price,
-                 'Diff' = abs(myvi_man_actual_price$Price - myvi_man_est_price$Price))
-                   
-# Case: Honda City only ---------------------------------------------------
-
-plyr::count(training_city, "Modelvar") # check with Excel model variants
-plyr::count(testing_city, "Modelvar")
-
-training_city$Modelvar = as.character(training_city$Modelvar)
-testing_city$Modelvar = as.character(testing_city$Modelvar)
-
-training_city$Modelvar = trimws(training_city$Modelvar)
-testing_city$Modelvar = trimws(testing_city$Modelvar)
-# Alternative function for trim spaces: trim <- function (x) gsub("^\\s+|\\s+$", "", x)
-
-training_city$Modelvar = as.factor(training_city$Modelvar)
-testing_city$Modelvar = as.factor(testing_city$Modelvar)
-
-# consider trim spaces first
-# trimws(x, which = c("both", "left", "right"))
-
-testing_city$Modelvar[testing_city$Modelvar %in% c("E ", "E  ")] = "E"
-testing_city$Modelvar[testing_city$Modelvar %in% c("S ", "S  ")] = "S"
-testing_city$Modelvar[testing_city$Modelvar %in% c("VTEC ", "VTEC  ")] = "VTEC"
-
-testing_city$Modelvar = as.factor(testing_city$Modelvar)
-
-str(testing_city)
-levels(testing_city$Modelvar)
-# merge duplicated factor classes due to Upper/Lower cases
-levels(training_city$Modelvar)[levels(training_city$Modelvar)%in%c("E (New model)", "E (New Model)")] = "E (New Model)"
-
-training_city = droplevels(training_city)
-levels(training_city$Modelvar) # check if match Excel model var
-
-levels(testing_city$Modelvar)[levels(testing_city$Modelvar)%in%c("E (New model)", "E (New Model)")] = "E (New Model)"
-testing_city = droplevels(testing_city)
-levels(testing_city$Modelvar)
-
-city_levels = unique(c(levels(testing_city$Modelvar),levels(training_city$Modelvar)))
-city_levels
-
-training_city$Modelvar = factor(training_city$Modelvar, levels = city_levels)
-testing_city$Modelvar = factor(testing_city$Modelvar, levels = city_levels)
-
-
-# Feature selection (City) -------------------------------------------------------
-
-# Identify useful predictors
-plyr::count(training_city, "Transm") # nearly all autos
-plyr::count(training_city, "CC") # all approx the same
-plyr::count(training_city, "Airbag")
-plyr::count(training_city, "Leather")
-plyr::count(training_city, "Nav")
-plyr::count(training_city, "ABS")
-plyr::count(training_city, "SportRims")
-plyr::count(training_city, "RevCam")
-plyr::count(training_city, "PowDoor")
-plyr::count(training_city, "TouchScreen") # all N/A
-plyr::count(training_city, "ClimaCtrl")
-
-# drop non-useful predictors
-drops = c("Transm", "CC", "TouchScreen")
-training_city = training_city[, !names(training_city) %in% drops]
-str(training_city)
-
-testing_city = testing_city[, !names(testing_city) %in% drops]
-str(testing_city)
-
-padshift_train_city = grepl("paddle", training_city$Features, ignore.case=TRUE)
-plyr::count(padshift_train_city)
-
-training_city$PadShift = padshift_train_city
-
-padshift_test_city = grepl("paddle", testing_city$Features, ignore.case=TRUE)
-plyr::count(padshift_test_city)
-
-testing_city$PadShift = padshift_test_city
-
-
-# Alternative keep useful predictor method
-# keeps = c("a", "b")
-# df[keeps, drop=FALSE]
-
-# NO LONGER REQUIRED: drop levels from all factor columns, alternative can use droplevels()
-# testdata_hon[] <- lapply(testdata_hon, function(x) if(is.factor(x)) factor(x) else x)
-# levels((testdata_hon$Modelvar))
-
-# Mulitinomial model ------------------------------------------------------
-
-library(nnet)
-
-multinom_city = multinom(Modelvar ~ ., data = training_city[,-c(1:4)], trace=F)
-multinom_city_pred = predict(multinom_city, newdata=testing_city[,-c(1:4)])
-
-all.equal(levels(testing_city$Modelvar),levels(multinom_city_pred))
-levels(testing_city$Modelvar)
-levels(multinom_city_pred)
-1-sum(multinom_city_pred==testing_city$Modelvar)/length(multinom_city_pred) 
-# 33.63% error (Feb'18 test Mar'18)
-# 33.31% error (Jan'18 test Feb'18)
-# 35.31% error (merged Jan-Feb'18 test Mar'18)
-table(multinom_city_pred, testing_city$Modelvar)
-
-city_out = cbind.data.frame(testdata_hon[,1], city_pred)
-write.csv(city_out, "city_out.csv")
-
-city_test_pred = predict(city_full, newdata=test_city[,-c(1,2,3,4,7)])
-city_out = cbind.data.frame(test_city[,1], city_test_pred)
-
-
-
-# CV for multinom model ---------------------------------------------------
-
-install.packages("plyr")
-library(plyr)
-count(testdata_hon, "Brand") # 1817 data points, sufficient for 5-fold CV?
-
-# try Cross Validation (5-fold)
-str(testdata_hon)
-
-CV_values = vector(length=1)
-n=nrow(testdata_hon)
-for(i in 1){
-  cvi=0
-  for(j in 1:5){
-    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
-    set_model = multinom(testdata_hon[-k,3] ~ ., data = testdata_hon[-k, c(4:11)], trace=F) 
-    yhat = predict(set_model, newdata=testdata_hon[k,c(4:11) ])
-    yhat = factor(yhat, levels=levels(testdata_hon[,3])) # realign factor levels
-    cvi = cvi + (1 - sum(yhat==testdata_hon[k,3])/length(yhat))
-  }
-  CV_values[i] = cvi/5
-}
-
-CVoutput_full = CV_values
-CVoutput_full # full model has an error rate of 42.69%
-levels(yhat); levels(testdata_hon[k,3])
-
-plyr::count(yhat); plyr::count(testdata_hon[k,3])
-
-# warning msg: group 1.3 (A) , e (new model) is empty
-# reason: when doing fold CV, sparse data wont be available in some folds
-
-
-
-
-
-# test for models with one predictor removed
-
-CV_values = vector(length=length(x))
-n=length(y)
-for(i in 1:length(x)){
-  cvi=0
-  for(j in 1:5){
-    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
-    set_model = multinom(y[-k,] ~ ., data = x[-k, -i], trace=F) 
-    yhat = predict(set_model, newx=x[k, -i])
-    cvi = cvi + (1 - sum(yhat==y[k,])/length(yhat))
-  }
-  CV_values[i] = cvi/5
-}
-
-CVoutput = cbind(colnames(testdata_hon[,-c(1:3)]), CV_values)
-
-
-colnames(CVoutput) = c("Predictor Removed", "CV values")
-CVoutput
-
-CVoutput[which.min(CVoutput[,2]), 1]; min(CVoutput[,2]) # shows the least significant predictor, and the model's CV with that predictor removed
-# 79.40% error rate, slightly better than the full model
-
-# next step is to test for simpler models (less two predictors)
-models <- lapply(paste("Modalvar", names(testdata_hon)[-3], sep = "~"), formula)
-models
-
-evars = names(testdata_hon[,-c(1:3)])
-ii = lapply(1:9, seq_len)
-lapply(ii, function(X)
-  {(multinom(reformulate(response="Modelvar", termlabels=evars[X]), 
-                data=testdata_hon[,-c(1:2)])
-      )
-  }
-)
-
-testdata_hon[1,]
-ii = combn(seq(1:8), 7)
-a = as.data.frame(0); b = as.data.frame(0)
-
-# printed all variations of possible models based on the number of variables
-for(i in 1:8){
- a = reformulate(response="Modelvar", termlabels=evars[ii[,i]])
- print(a)
-}
-
-
-
-# SVM approach ------------------------------------------------------------
-
-library(e1071)
-
-head(training_city)
-svm_test = svm(Modelvar ~ ., data = training_city[,-c(1:4)])
-svm_pred = predict(svm_test, newdata=training_city[,-c(1:4)])
-1-sum(training_city[,5]==svm_pred)/nrow(training_city) # 32.03% error rate
-
-plyr::count(svm_pred); plyr::count(training_city, vars="Modelvar")
-# model can't predict any of the "S" variants, est. categorized into "E"
-
-# SVM CV (skip)------------------------------------------------------------------
-
-
-# CV the manual way
-svm_test = svm(Modelvar ~ ., data = testdata_hon[-c(1:50),-c(1:4)]) # train on the data excl. first 50
-svm_pred = predict(svm_test, newdata=testdata_hon[c(1:50),-c(1:4)]) # predict based on first 50 predictors
-sum(testdata_hon[c(1:50),5]==svm_pred)/nrow(testdata_hon[c(1:50),]) # 82% accuracy rate
-
-x2 = as.data.frame(training_city[,-c(1:4)])
-y2 = as.data.frame(training_city[,5])
-
+# manual n-fold CV method:
 CV_values_svm = vector(length=1)
 n=length(training_city[,5])
 for(i in 1){
@@ -2255,297 +2203,28 @@ for(i in 1){
   CV_values_svm[i] = cvi/5
 }
 
-CV_values_svm # 13.75% error rate
+CV_values_svm
 
-levels(yhat); levels(training_city[,5])
-plyr::count(yhat); plyr::count(training_city[k,5])
-# at the last fold CV, as expected, due to lack of data of the new car models,
-# our svm model prediction led to more basic models "E" & "S"
-# the model has a higher success rate for predicting basic models
+# Consolidate all outputs into one file (Example) -------------------------------------------------
 
-# Tune - SVM --------------------------------------------------------------
-
-# initial model: cost = 1, gamma = 0.1, kernel = radial
-svm_tune_radial <- tune(svm, Modelvar ~ ., data = training_city[,-c(1:4)],
-                        kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
-
-str(training_city[,-c(1:4)])
-levels(training_city$Modelvar)
-svm_tune$best.model # cost = 10, gamma = 0.5
-
-CV_values_svm = vector(length=1)
-n=length(training_city[,5])
-for(i in 1){
-  cvi=0
-  for(j in 1:5){
-    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
-    set_model = svm(training_city[-k,5] ~ ., data = training_city[-k, -c(1:4)], trace=F,
-                    cost = 10, gamma = 0.5) 
-    yhat = predict(set_model, newdata=training_city[k, -c(1:4)])
-    cvi = cvi + (1 - sum(yhat==training_city[k,5])/length(yhat))
-  }
-  CV_values_svm[i] = cvi/5
-}
-
-CV_values_svm # 4.5% error rate, MAJOR improvement over untuned model
-
-svm_tune_linear <- tune(svm, Modelvar ~  ., data = training_city[,-c(1:4)],
-                        kernel="linear", ranges=list(cost=10^(-1:2)))
-
-svm_tune_linear$best.model # cost = 10, gamma = 0.09090909
-
-CV_values_svm = vector(length=1)
-n=length(training_city[,5])
-for(i in 1){
-  cvi=0
-  for(j in 1:5){
-    k = ((j-1)*floor(n/5)+1):(j*floor(n/5));
-    set_model = svm(training_city[-k,5] ~ ., data = training_city[-k, -c(1:4)], trace=F,
-                    kernel = "linear", cost = 10, gamma = 0.09090909) 
-    yhat = predict(set_model, newdata=training_city[k, -c(1:4)])
-    cvi = cvi + (1 - sum(yhat==training_city[k,5])/length(yhat))
-  }
-  CV_values_svm[i] = cvi/5
-}
-
-CV_values_svm 
-# 0.1% error with merged df
-# 12.4% error rate, linear kernel perform worst than radial
-
-# Verification vs Testset (Model variants) -------------------------------------------------
-
-svm_city = svm(Modelvar ~ ., data = training_city[,-c(1:4)],
-               kernel='radial', cost = 10, gamma = 0.5)
-test_output = predict(svm_city, newdata=testing_city[,-c(1:5)])
-
-
-1-sum(test_output==testing_city[,6])/length(test_output) #26.97% error rate
-
-table(test_output, testing_city[,6]) # compare differences
-# Ref: https://afit-r.github.io/svm
-
-# Verification vs Testset (Avg Price of Model variants) -------------------------------------------------
-
-str(training_city)
-str(testing_city)
-
-check_price_diff = cbind.data.frame(testing_city$Modelvar, test_output, testing_city$Price)
-names(check_price_diff) = c('ActualModel', 'EstModel', 'Price')
-
-check_price_diff_actual = group_by(check_price_diff, ActualModel)
-check_price_diff_actual = dplyr::summarise(check_price_diff_actual, Price = mean(Price))
-
-check_price_diff_est = group_by(check_price_diff, EstModel)
-check_price_diff_est = dplyr::summarise(check_price_diff_est, Price = mean(Price))
-
-cbind.data.frame(check_price_diff_actual, check_price_diff_est$Price)
-
-check_price_diff %>%
-  group_by(ActualModel) %>%
-  dplyr::summarise(Price = mean(Price))
-
-check_price_diff %>%
-  group_by(EstModel) %>%
-  dplyr::summarise(Price = mean(Price))
-
-
-
-# Case: Perodua Myvi only ---------------------------------------------------
-
-# filter data for Myvi only
-
-library(dplyr)
-testdata_myvi = dplyr::filter(testdata, Brand=="Perodua" & Model=="MyVi")
-plyr::count(testdata_myvi, "Modelvar")
-
-str(testdata_myvi)
-testdata_myvi = droplevels(testdata_myvi)
-testdata_myvi$MfgYr = as.numeric(testdata_myvi$MfgYr) # convert yrs to int
-testdata_myvi$MfgYr = as.numeric(scale(testdata_myvi$MfgYr)) # scale & center numeric predictors, then coerce it back to numeric
-testdata_myvi$CC = as.numeric(scale(testdata_myvi$CC))
-
-str(testdata_myvi)
-
-# combined duplicate levels
-levels(testdata_myvi$Modelvar)
-levels(testdata_myvi$Modelvar)[levels(testdata_myvi$Modelvar)%in%c("1.3 (A) EZi", "1.3 (A) EZI")] = "1.3 (A) EZi"
-levels(testdata_myvi$Modelvar)[levels(testdata_myvi$Modelvar)%in%c("1.3 (M) Sxi", "1.3 (M) SXi", "1.3 (M) SXI")] = "1.3 (M) SXi"
-
-levels(testdata_myvi$Modelvar)
-levels(droplevels(testdata$Modelvar[testdata$Model=="MyVi"]))
-all.equal(levels(testdata_myvi$Modelvar), levels(droplevels(testdata$Modelvar[testdata$Model=="MyVi"]))) # won't be equal, manual check on Excel pivot table
-
-
-## ## ## ## ## ## ## ##  
-# alternative soln to combine levels
-# ha <- list(
-#  unknown = c("unemployed","unknown","self-employed"),
-#  class1  = c("admin.","management")
-#)
-
-#for (i in 1:length(ha)) levels(z)[levels(z)%in%ha[[i]]] <- names(ha)[i]
-## ## ## ## ## ## ## ##  
-
-
-# should split manual / auto
-testdata_myvi_man = dplyr::filter(testdata_myvi, Transm=="Manual")
-testdata_myvi_auto = dplyr::filter(testdata_myvi, Transm=="Auto")
-plyr::count(testdata_myvi_man, "Modelvar")
-plyr::count(testdata_myvi_auto, "Modelvar")
-
-# model variants data
-# 1.3 (A) EZI, 1.3 (A) EZi, 1.3 EZI (A)
-# 1.3 (A) EZ, 1.3 EZ (A)
-# 1.3 (A) SE, 1.3 SE (A)
-
-# misclassify in actual data
-# adj. 1.3 (m) sx and 1.3 (m) sxi to 1.3  (a) se
-# 1.3 (a) EZI to 1.3 (m) sx
-
-# remove 1.3 (a) ezi from myvi manual database
-testdata_myvi_man = testdata_myvi_man[-c(which(testdata_myvi_man$Modelvar=="1.3 (A) EZ"), which(testdata_myvi_man$Modelvar=="1.3 (A) SE")), ]
-
-# remove 1.3 (m) sx and 1.3 (m) sxi from myvi auto database
-testdata_myvi_auto = testdata_myvi_auto[-c(which(testdata_myvi_auto$Modelvar=="1.3 (M) SE"), 
-                                             which(testdata_myvi_auto$Modelvar=="1.3 (M) SX")), ]
-
-
-# remove obs w ith frequency less than 10
-testdata_myvi_auto <- testdata_myvi_auto[!(as.numeric(testdata_myvi_auto$Modelvar) %in% which(table(testdata_myvi_auto$Modelvar)<10)),]
-plyr::count(testdata_myvi_auto, "Modelvar")
-testdata_myvi_auto = droplevels(testdata_myvi_auto)
-
-testdata_myvi_man <- testdata_myvi_man[!(as.numeric(testdata_myvi_man$Modelvar) %in% which(table(testdata_myvi_man$Modelvar)<10)),]
-plyr::count(testdata_myvi_man, "Modelvar")
-testdata_myvi_man = droplevels(testdata_myvi_man)
-
-
-
-# build multinom model
-
-# MyVi manual models only
-# CHECK: which predictors to remove from the training data set
-str(testdata_myvi_man)
-
-myvi_man_full = multinom(Modelvar ~ ., data=testdata_myvi_man[,-c(1,2,3,7)])
-myvi_man_pred = predict(myvi_man_full, newdata=testdata_myvi_man[,-c(1,2,3,7)])
-
-levels(myvi_man_pred);levels(testdata_myvi_man$Modelvar) # 5 levels
-cbind(plyr::count(myvi_man_pred), plyr::count(testdata_myvi_man$Modelvar))
-1-sum(myvi_man_pred==testdata_myvi_man$Modelvar)/nrow(testdata_myvi_man) # rough gauge 34.75% error
-
-# MyVi auto models only
-myvi_auto_full = multinom(Modelvar ~ ., data=testdata_myvi_auto[,-c(1,2,3,7)])
-myvi_auto_pred = predict(myvi_auto_full, newdata=testdata_myvi_auto[,-c(1,2,3,7)])
-levels(myvi_auto_pred);levels(testdata_myvi_auto$Modelvar) # 7 levels
-cbind(plyr::count(myvi_auto_pred), plyr::count(testdata_myvi_auto$Modelvar)) # failed
-plyr::count(myvi_auto_pred); plyr::count(testdata_myvi_auto$Modelvar)
-1-sum(myvi_auto_pred==testdata_myvi_auto$Modelvar)/nrow(testdata_myvi_auto) # rough gauge 37.93% err
-
-# output predictions
-# test on our training set first
-# link output to data obs ID
-myvi_man_output = cbind.data.frame(testdata_myvi_man[,1], myvi_man_pred)
-myvi_auto_output = cbind.data.frame(testdata_myvi_auto[,1], myvi_auto_pred)
-
-names(myvi_man_output) = c("ID", "EstModelVar")
-names(myvi_auto_output) = c("ID", "EstModelVar")
-
-
-myvi_output = rbind.data.frame(myvi_man_output, myvi_auto_output)
-write.csv(myvi_output, "myvi_out.csv")
-
-
-# predict based on test dataset
-
-myvi_man_test_pred = predict(myvi_man_full, newdata=test_myvi_man[,-c(1,2,3,4,7)])
-myvi_auto_test_pred = predict(myvi_auto_full, newdata=test_myvi_auto[,-c(1,2,3,4,7)])
-
-myvi_man_test_output = cbind.data.frame(test_myvi_man[,1], myvi_man_test_pred)
-myvi_auto_test_output = cbind.data.frame(test_myvi_auto[,1], myvi_auto_test_pred)
-
-names(myvi_man_test_output) = c("ID", "EstModelVar")
-names(myvi_auto_test_output) = c("ID", "EstModelVar")
-
-myvi_test_output = rbind.data.frame(myvi_man_test_output, myvi_auto_test_output)
-write.csv(myvi_test_output, "myvi_out.csv")
-
-# Case: Toyota Vios -------------------------------------------------------------
-
-testdata_vios =  dplyr::filter(testdata, Brand=="Toyota" & Model=="Vios")
-plyr::count(testdata_vios, "Modelvar")
-
-str(testdata_vios)
-testdata_vios = droplevels(testdata_vios)
-testdata_vios$MfgYr = as.numeric(testdata_vios$MfgYr) # convert yrs to int
-testdata_vios$MfgYr = as.numeric(scale(testdata_vios$MfgYr)) # scale & center numeric predictors, then coerce it back to numeric
-testdata_vios$CC = as.numeric(scale(testdata_vios$CC))
-
-
-# split Auto/Manual
-testdata_vios_man = dplyr::filter(testdata_vios, Transm=="Manual")
-testdata_vios_auto = dplyr::filter(testdata_vios, Transm=="Auto")
-
-testdata_vios_man = droplevels(testdata_vios_man)
-testdata_vios_auto = droplevels(testdata_vios_auto)
-
-plyr::count(testdata_vios_man, "Modelvar")
-plyr::count(testdata_vios_auto, "Modelvar")
-
-# remove obs that is misclassify
-testdata_vios_man = testdata_vios_man[-c(which(testdata_vios_man$Modelvar=="J 1.5 (A)"), which(testdata_vios_man$Modelvar=="S 1.5 (A)")), ]
-
-# Vios Manual
-vios_man = multinom(Modelvar ~ ., data=testdata_vios_man[,-c(1,2,3,7)])
-vios_man_pred = predict(vios_man, newdata=testdata_vios_man[,-c(1,2,3,7)])
-levels(vios_man_pred);levels(testdata_vios_man$Modelvar) # 3 levels
-cbind(plyr::count(vios_man_pred), plyr::count(testdata_vios_man$Modelvar)) # failed
-plyr::count(vios_man_pred); plyr::count(testdata_vios_man$Modelvar)
-1-sum(vios_man_pred==testdata_vios_man$Modelvar)/nrow(testdata_vios_man) # rough gauge 7.3% err
-
-# Vios Auto
-vios_auto = multinom(Modelvar ~ ., data=testdata_vios_auto[,-c(1,2,3,7)])
-vios_auto_pred = predict(vios_auto, newdata=testdata_vios_auto[,-c(1,2,3,7)])
-levels(vios_auto_pred);levels(testdata_vios_auto$Modelvar) # 13 levels
-cbind(plyr::count(vios_auto_pred), plyr::count(testdata_vios_auto$Modelvar)) # failed
-plyr::count(vios_auto_pred); plyr::count(testdata_vios_auto$Modelvar)
-1-sum(vios_auto_pred==testdata_vios_auto$Modelvar)/nrow(testdata_vios_auto) # rough gauge 57.2% err
-
-# test on test dataset
-
-vios_auto_test_pred = predict(vios_auto, newdata=test_vios_auto[,-c(1,2,3,4,7)])
-vios_man_test_pred = predict(vios_auto, newdata=test_vios_man[,-c(1,2,3,4,7)])
-
-vios_auto_out = cbind.data.frame(test_vios_auto[,1], vios_auto_test_pred)
-vios_man_out = cbind.data.frame(test_vios_man[,1], vios_man_test_pred)
-
-names(vios_auto_out) = c("ID", "EstModelVar")
-names(vios_man_out) = c("ID", "EstModelVar")
-
-vios_test_out = rbind.data.frame(vios_auto_out, vios_man_out)
-
-
-# Consolidate all outputs into one file -------------------------------------------------
+pred_output = cbind.data.frame(test_set$ID, pred_var)
+names(pred_output) = c("ID", "EstModelVar")
 
 # align col names
 names(myvi_test_output) = c("ID", "EstModelVar")
 names(city_out) = c("ID", "EstModelVar")
 names(vios_test_out) = c("ID", "EstModelVar")
 
-
 pred_all = rbind.data.frame(city_out, myvi_test_output, vios_test_out)
 write.csv(pred_all, "pred_all.csv")
 
 
-# Caret - multinomial -----------------------------------------------------
-
-# caret
 
 
 
 
 # glmnet multinomial ------------------------------------------------------
-install.packages("glmnet")
+
 library(glmnet)
 
 x = as.matrix(x)
@@ -2565,9 +2244,6 @@ predict(fit, newx=x1[1,])
 
 cvfit=cv.glmnet(x1, y1, family="multinomial")
 plot(cvfit)
-
-
-
 
 # Caret - SVM -------------------------------------------------------------
 
