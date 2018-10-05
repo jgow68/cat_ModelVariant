@@ -5,9 +5,16 @@
 setwd("~/Github Folder/cat_ModelVariant")
 
 # form training df
-data1 = read.csv('May18_V2.csv')
-data2 = read.csv('Apr18_V2.csv')
-data3 = read.csv('Mar18_V1.csv')
+data1 = read.csv('Sept18_V2.csv')
+data2 = read.csv('Aug18_V3.csv')
+
+# starting from "Aug'18 dataset has vehicle variant and series obtained from Mudah
+# issue is those with variant will not provide features info, hence we try to use seller comments instead (text extract)
+# can use provided variant/series as predictor, but unsure how accurate this is going forward
+
+# data1 = read.csv('May18_V2.csv')
+# data2 = read.csv('Apr18_V2.csv')
+# data3 = read.csv('Mar18_V1.csv')
 
 # data1 = read.csv("Feb18_V1.csv")
 # data2 = read.csv('Jan18_V1.csv')
@@ -16,15 +23,53 @@ data3 = read.csv('Mar18_V1.csv')
 
 # form testing df
 
-verify_data = read.csv("Jun18_V2.csv")
+verify_data = data1
+# verify_data = read.csv("Jun18_V2.csv")
 # verify_data = read.csv("Mar18_V1.csv")
 
+
+# substitute features with seller comments
+data2$Features = as.character(data2$Features)
+data2$Seller_Comments = as.character(data2$Seller_Comments)
+
+data2$Text = ifelse(data2$Variant == "", 
+                    data2$Features, data2$Seller_Comments)
+
+data2$Transmission = as.factor(
+  ifelse(grepl("manual", data2$Transmission, ignore.case = TRUE), 
+         "MANUAL", "AUTO"))
+
+# search text if certain top features appeared
+library(quanteda)
+quanteda_options("threads" = 4)
+corpus_text = corpus(as.character(data2$Text)) # creates corpus
+
+dfm_text <- dfm( # creates document feature matrix
+  corpus_text, ngrams = 1,
+  remove = stopwords("english"), remove_punct = TRUE, remove_numbers = TRUE, stem = FALSE
+)
+
+tf_text <- topfeatures(dfm_text, n = 50, decreasing=TRUE)
+tf_text
+
 # search Features for key words and form a new column to merge with dataframe
+
 data1$Features = as.character(data1$Features)
 data2$Features = as.character(data2$Features)
 data3$Features = as.character(data3$Features)
 # data4$Features = as.character(data4$Features)
 verify_data$Features = as.character(verify_data$Features)
+
+# New Data 2 Search (combined Features/Seller Comments)
+data2$Airbag = grepl("Airbag", data2$Text)
+data2$Leather = grepl("Leather", data2$Text)
+data2$Nav = grepl("Nav", data2$Text)
+data2$ABS = grepl("ABS", data2$Text)
+data2$Sport.Rim = grepl("Sport rim", data2$Text)
+data2$Reverse.Camera = grepl("Reverse camera", data2$Text)
+data2$Power.Door = grepl("Power Door", data2$Text)
+data2$Climate.Control = grepl("Climate control", data2$Text)
+data2$Light = grepl("Light", data2$Text)
 
 # Data 1 Search
 data1$Airbag = grepl("Airbag", data1$Features)
@@ -164,7 +209,7 @@ dim(training_data3) # 100k obs
 # dim(training_data4) #109,591 obs
 
 # 1st case: choose most recent data set for training
-# training_data = training_data1
+# training_data = training_data2
 
 # 2nd case: merge historical datasets by outer join 2 df
 # consider using data.table for faster computation
@@ -234,6 +279,7 @@ training_data$CC_adj = ifelse(training_data$CC<100, training_data$CC*100,
                               ifelse(training_data$CC<10000, training_data$CC, training_data$CC))
 
 training_data = dplyr::filter(training_data, !is.na(CC_adj) & CC_adj < 10000)
+
 # scale data at respective make level
 
 
@@ -279,16 +325,761 @@ testing_data = dplyr::filter(testing_data, !is.na(CC_adj) & CC_adj < 10000)
 
 colnames(training_data) == colnames(testing_data)
 
+# Testing for new dataset format (+Variant/Series) ------------------------
+
+train_all = training_data
+
+# filter training set only for variants with size >20
+train_all = train_all %>% 
+  dplyr::group_by(Modelvar) %>%
+  dplyr::filter(n()>20) %>%
+  as.data.frame()
+
+train_all = droplevels(train_all)
+
+colnames(train_all)
+to_drop = as.character()
+for (i in 9:(length(colnames(train_all)))){ # check if the loop range is correct
+  test = plyr::count(train_all, colnames(train_all)[i])
+  if (length(test$freq) == 1){ 
+    # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
+    to_drop = c(paste(colnames(train_all)[i]), to_drop)
+  }
+}
+
+drops = c(to_drop, "ID", "Features", "Price", "CC")
+
+# drop all non-relevant predictors
+train_all = train_all[, !names(train_all) %in% drops]
+
+str(train_all)
+
+
+# Create train, valid, test set with caret ------------------------------------
+
+library(caret)
+set.seed(123)
+trainIndex <- createDataPartition(train_all$Modelvar, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+
+df_split_train = train_all[trainIndex, ]
+df_split_nonTrain = train_all[-trainIndex, ]
+
+validIndex <- createDataPartition(df_split_nonTrain$Modelvar, p = .5, 
+                                  list = FALSE, 
+                                  times = 1)
+
+df_split_valid = df_split_nonTrain[validIndex, ]
+df_split_test = df_split_nonTrain[-validIndex, ]
+
+dim(df_split_train)
+dim(df_split_valid)
+dim(df_split_test)
+
+
+# AutoML ------------------------------------------------------------------
+
+library(h2o)
+h2o.init(min_mem_size="4g", max_mem_size = "8g")
+h2o.shutdown()
+
+df_train <- as.h2o(df_split_train)
+df_valid <- as.h2o(df_split_valid)
+df_test <- as.h2o(df_split_test)
+
+y <- 'Modelvar'
+x <- setdiff(names(df_train), y)
+
+AML_all <- h2o.automl(x = x,
+                     y = y,
+                     training_frame = df_train,
+                     nfolds = 5,
+                     keep_cross_validation_predictions = TRUE,
+                     validation_frame = df_valid,
+                     leaderboard_frame = df_test,
+                     exclude_algos = c("DeepLearning"), # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
+                     #max_runtime_secs = 60, 
+                     max_models = 5,
+                     seed = 1,
+                     project_name = "Class_all_Aug_Sept18"
+)
+
+print(AML_all@leaderboard)
+
+h2o.mean_per_class_error(AML_all@leader)
+h2o.performance(AML_all@leader)
+
+
+h2o.getModel(AML_all@leader)
+
+
+AML_all@leader
+
+# Perodua: All ------------------------------------------------------------
+
+train_p2 = dplyr::filter(training_data, Brand=="PERODUA")
+test_p2 = dplyr::filter(testing_data, Brand=="PERODUA")
+
+train_p2$CC_scl = as.numeric(scale(train_p2$CC_adj))
+test_p2$CC_scl = as.numeric(scale(test_p2$CC_adj))
+
+# filter training set only for variants with size >20
+train_p2 = train_p2 %>% 
+  group_by(Modelvar) %>%
+  dplyr::filter(n()>20) %>%
+  as.data.frame()
+
+train_p2 = droplevels(train_p2)
+test_p2 = droplevels(test_p2)
+
+# standardize Variant levels
+p2_var = unique(c(levels(train_p2$Modelvar),levels(test_p2$Modelvar)))
+train_p2$Modelvar = factor(train_p2$Modelvar, levels = p2_var)
+test_p2$Modelvar = factor(test_p2$Modelvar, levels = p2_var)
+
+summary(train_p2$Modelvar)
+summary(test_p2$Modelvar)
+
+# standardize Model levels
+p2_mdl = unique(c(levels(train_p2$Model),levels(test_p2$Model)))
+train_p2$Model = factor(train_p2$Model, levels = p2_mdl)
+test_p2$Model = factor(test_p2$Model, levels = p2_mdl)
+
+summary(train_p2$Model)
+summary(test_p2$Model)
+
+# standardize MfgYr levels
+p2_yr = unique(c(levels(train_p2$MfgYr), levels(test_p2$MfgYr)))
+train_p2$MfgYr = factor(train_p2$MfgYr, levels = p2_yr)
+test_p2$MfgYr = factor(test_p2$MfgYr, levels = p2_yr)
+
+summary(train_p2$MfgYr)
+summary(test_p2$MfgYr)
+
+str(train_p2)
+str(test_p2)
+
+# P2: Identify predictors-----------------------------------------------------
+to_drop = as.character()
+for (i in 9:(length(colnames(train_p2))-2)){
+  test = plyr::count(train_p2, colnames(train_p2)[i])
+  if (length(test$freq) == 1){ 
+    # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
+    to_drop = c(paste(colnames(train_p2)[i]), to_drop)
+  }
+}
+
+drops = c(to_drop, "ID", "Brand", "Features", "Price", "CC", "CC_adj")
+
+# drop all non-relevant predictors
+train_p2 = train_p2[, !names(train_p2) %in% drops]
+test_p2 = test_p2[, !names(test_p2) %in% drops]
+
+colnames(train_p2) == colnames(test_p2)
+colnames(train_p2)
+
+# P2: SVM -----------------------------------------------------------------
+dim(train_p2)
+
+system.time(tune_radial_p2 <- tune(svm, Modelvar ~ ., data = train_p2,
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+)
+
+
+
+svm_p2 = svm(Modelvar ~., data = train_p2,
+              kernel="radial", cost=tune_radial_p2$best.parameters$cost,
+              gamma=tune_radial_p2$best.parameters$gamma, trace=F
+)
+
+svm_est_p2 = predict(svm_p2, newdata=test_p2)
+plyr::count(svm_est_p2)
+p2_est_lvl = unique(c(levels(svm_est_p2), levels(test_p2$Modelvar)))
+test_p2$Modelvar = factor(test_p2$Modelvar, levels = p2_est_lvl)
+svm_est_p2 = factor(svm_est_p2, levels = p2_est_lvl)
+
+1-sum(test_p2$Modelvar==svm_est_p2)/nrow(test_p2)
+
+p2_tbl = table(test_p2$Modelvar, svm_est_p2)
+write.csv(p2_tbl,"p2.csv")
+
+c(colnames(train_p2), dim(train_p2))
+
+# 18k obs, 11 var
+# user   system  elapsed 
+# 12621.70    30.49 12797.28 ~ 213 mins, 3.5 hrs
+
+# 9400 obs, 19-5 variables
+# user  system elapsed 
+# 3655.37    7.22 3680.47  ~61 mins
+
+# 9400 obs, 17-5 variables
+# user  system elapsed 
+# 3140.10    8.92 3261.57 ~54 mins
+
+
+
+
+# P2: h2o GLM -------------------------------------------------------------
+
+h2o.init(nthreads = -1, 
+         min_mem_size="4g", max_mem_size = "8g"
+         )
+
+data = as.h2o(train_p2)
+data_for_pred = as.h2o(test_p2[, -2]) # removed the variant from the predidction set, if not prediction will trigger errors
+
+y <- 'Modelvar'
+x <- setdiff(names(data), y)
+
+splits <- h2o.splitFrame(data = data, 
+                         ratios = c(0.7, 0.15),  #partition data into 70%, 15%, 15% chunks
+                         seed = 1)  #setting a seed will guarantee reproducibility
+train <- splits[[1]]
+valid <- splits[[2]]
+test <- splits[[3]]
+
+glm_fit1 <- h2o.glm(x = x, 
+                    y = y, 
+                    training_frame = train,
+                    model_id = "glm_fit1",
+                    family = "multinomial"
+)  #similar to R's glm, h2o.glm has the family argument
+# binomial, gaussian (int/num), ordinal (cat>3 lvls), quasibinomial (num), poisson, gamma, tweedie
+
+# automatic tuning of lambda, for regularization
+system.time(glm_fit2 <- h2o.glm(x = x, 
+                        y = y, 
+                        training_frame = train,
+                        model_id = "glm_fit2",
+                        validation_frame = valid,
+                        family = "multinomial",
+                        lambda_search = TRUE)
+) # 981.54s ~ 15 mins for full data # 684s ~ 11 mins for split data: train + valid
+
+# Let's compare the performance of the two GLMs
+glm_perf1 <- h2o.performance(model = glm_fit1,
+                             newdata = test)
+glm_perf2 <- h2o.performance(model = glm_fit2,
+                             newdata = test)
+
+# Print model performance
+# glm_perf1
+# glm_perf2
+
+h2o.mse(glm_perf1) # 0.2378
+h2o.mse(glm_perf2) # 0.2176
+
+# AUC applicable for binomial classification
+# h2o.auc(glm_perf1)  
+# h2o.auc(glm_perf2)
+
+# Error: DistributedException: 'null', caused by java.lang.ArrayIndexOutOfBoundsException
+# error due to unarranged x, y for test set
+
+
+glm_pred_p2 = h2o.predict(glm_fit2, newdata = data_for_pred)
+p2_output_glm = as.data.frame(test_p2$Modelvar)
+p2_output_glm$est_var = glm_pred_p2[, 1] # first column is the predictions
+# p2_output_glm$est_var = colnames(glm_pred_p2[, -1])[max.col(glm_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_glm) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_glm$est_var)) # identified no. of variants predicted
+
+sum(p2_output_glm$est_var == p2_output_glm$act_var)/nrow(p2_output_glm) # accuracy level
+
+p2_glm_for_output = as.data.frame(p2_output_glm) # weird format, blanks repl with 'X'
+
+# write.csv(p2_glm_for_output, file = 'glm_p2.csv')
+
+# P2: h2o Random Forest ---------------------------------------------------
+
+# Ref: https://github.com/h2oai/h2o-tutorials/blob/master/h2o-open-tour-2016/chicago/intro-to-h2o.R
+
+h2o.init(nthreads = -1, 
+         min_mem_size="4g", max_mem_size = "8g"
+)
+
+
+rf_fit1 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "rf_fit1",
+                            seed = 1)
+
+
+rf_fit2 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "rf_fit2",
+                            #validation_frame = valid,  #only used if stopping_rounds > 0
+                            ntrees = 100, # default 50, more shud increase perf
+                            seed = 1)
+
+# Let's compare the performance of the two RFs
+rf_perf1 <- h2o.performance(model = rf_fit1,
+                            newdata = test)
+rf_perf2 <- h2o.performance(model = rf_fit2,
+                            newdata = test)
+
+# Print model performance
+rf_perf1
+rf_perf2
+
+# Retreive test set AUC
+h2o.mse(rf_perf1) # 0.2111
+h2o.mse(rf_perf2) # 0.2108
+
+system.time(rf_fit3 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "rf_fit3",
+                            seed = 1,
+                            nfolds = 5) # cross-validation perf
+) # 92.68s, 1.5 mins
+
+# h2o.mse(rf_fit3, xval=TRUE)
+
+rf_pred_p2 = h2o.predict(rf_fit3, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_rf = as.data.frame(test_p2$Modelvar)
+p2_output_rf$est_var = rf_pred_p2[, 1] # colnames(rf_pred_p2[, -1])[max.col(rf_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_rf) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_rf$est_var)) # identified no. of variants predicted
+sum(p2_output_rf$est_var == p2_output_rf$act_var)/nrow(p2_output_rf) # accuracy level
+
+# P2: h2o GBM -------------------------------------------------------------
+
+gbm_fit1 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    model_id = "gbm_fit1",
+                    seed = 1)
+
+gbm_fit2 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    model_id = "gbm_fit2",
+                    #validation_frame = valid,  #only used if stopping_rounds > 0
+                    ntrees = 500, # default 50, need to take care of overfitting
+                    seed = 1)
+
+gbm_fit3 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    model_id = "gbm_fit3",
+                    validation_frame = valid,  #only used if stopping_rounds > 0
+                    ntrees = 500,
+                    score_tree_interval = 5,      #used for early stopping
+                    stopping_rounds = 3,          #used for early stopping
+                    stopping_metric = "AUTO",      #used for early stopping
+                    stopping_tolerance = 0.0005,  #used for early stopping
+                    seed = 1)
+
+system.time(gbm_fit4 <- h2o.gbm(
+                        ## standard model parameters
+                        x = x, 
+                        y = y, 
+                        training_frame = train, 
+                        validation_frame = valid,
+                        model_id = "gbm_fit4",
+                        
+                        ## more trees is better if the learning rate is small enough 
+                        ## here, use "more than enough" trees - we have early stopping
+                        ntrees = 10000,                                                            
+                        
+                        ## smaller learning rate is better (this is a good value for most datasets, but see below for annealing)
+                        learn_rate=0.01,                                                         
+                        
+                        ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
+                        stopping_rounds = 5, stopping_tolerance = 1e-4, stopping_metric = "AUTO", 
+                        
+                        ## sample 80% of rows per tree
+                        sample_rate = 0.8,                                                       
+                        
+                        ## sample 80% of columns per split
+                        col_sample_rate = 0.8,                                                   
+                        
+                        ## fix a random number generator seed for reproducibility
+                        seed = 1,                                                             
+                        
+                        ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+                        score_tree_interval = 10                                                 
+                      )
+) # 118.95s, 2 mins
+
+gbm_perf1 <- h2o.performance(model = gbm_fit1,
+                             newdata = test)
+gbm_perf2 <- h2o.performance(model = gbm_fit2,
+                             newdata = test)
+gbm_perf3 <- h2o.performance(model = gbm_fit3,
+                             newdata = test)
+gbm_perf4 <- h2o.performance(model = gbm_fit4,
+                             newdata = test)
+
+# Print model performance
+# gbm_perf1
+
+# Retreive test set MSE
+h2o.mse(gbm_perf1) # 0.1952
+h2o.mse(gbm_perf2) # 0.1954
+h2o.mse(gbm_perf3) # 0.1952
+h2o.mse(gbm_perf4) # 0.1948
+
+h2o.scoreHistory(gbm_fit2) # scoring based on training set only
+h2o.scoreHistory(gbm_fit3) # earlier stopping at no of trees, both training & validation perf metrics available
+
+plot(gbm_fit3, 
+     timestep = "number_of_trees", 
+     metric = "Classification_error")
+plot(gbm_fit3, 
+     timestep = "number_of_trees", 
+     metric = "logloss")
+
+gbm_pred_p2 = h2o.predict(gbm_fit4, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_gbm = as.data.frame(test_p2$Modelvar)
+p2_output_gbm$est_var = colnames(gbm_pred_p2[, -1])[max.col(gbm_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_gbm) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_gbm$est_var)) # identified no. of variants predicted
+sum(p2_output_gbm$est_var == p2_output_gbm$act_var)/nrow(p2_output_gbm) # accuracy level
+
+
+# P2: h2o GBM Grid Search -------------------------------------------------
+
+hyper_params = list(max_depth = seq(1,20,2) # usual depth = 10, max_depth = c(4,6,8,12,16,20) faster for larger datasets
+                    # learn_rate = 0.05, # seq(0.05, 0.1, 0.01), # smaller learning rate is better
+                    ## since we have learning_rate_annealing, we can afford to start with a bigger learning rate
+                                 
+                    # learn_rate_annealing = 0.99 # learning rate annealing: learning_rate shrinks by 1% after every tree 
+                    ## (use 1.00 to disable, but then lower the learning_rate)
+                    
+                    
+                    # sample_rate = seq(0.2, 1, 0.01), # sample % of rows per tree
+                    # col_sample_rate = seq(0.2, 1, 0.01), # sample % of columns per split
+                    # col_sample_rate_per_tree = seq(0.2, 1, 0.01)
+                    # col_sample_rate_change_per_level = seq(0.9, 1.1, 0.01), # col sampling / split as a function of split depth
+                    # min_rows = 2^seq(0, log2(nrow(train))-1, 1), # number of min rows in terminal node
+                    # nbins = 2^seq(4, 10, 1), # no. of bins for split-finding for cont/int cols
+                    # nbins_cats = 2^seq(4, 12, 1), # for cat col
+                    # min_split_improvement = c(0, 1e-8, 1e-6, 1e-4) # min relative error improvement thresholds for a split to occur
+                    # histogram_type = c("UniformAddptive", 'QuantilesGlobal', 'RoundRobin') # QG, RR good for num col with outliers
+)
+
+search_criteria <- list(strategy = "RandomDiscrete", # 'Cartesian'
+                        max_runtime_secs = 600,
+                        # max_models = 5,
+                        stopping_rounds = 5,
+                        stopping_metric = 'AUTO',
+                        stopping_tolerance = 1e-3
+)
+
+system.time(grid <- h2o.grid(
+                            hyper_params = hyper_params,
+                            search_criteria = search_criteria,
+                            algorithm="gbm",
+                            grid_id="depth_grid", # identifier for the grid, to later retrieve it
+                            
+                            x = x, 
+                            y = y, 
+                            training_frame = train, 
+                            validation_frame = valid,
+                            
+                            ntrees = 10000, ## more trees is better if the learning rate is small enough 
+                            ## here, use "more than enough" trees - we have early stopping
+                            
+                            seed = 1, 
+                            learn_rate = 0.01,
+                            score_tree_interval = 10 # score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+                            )
+)
+
+grid@summary_table # default ordered by logloss
+## sort the grid models by preferred metric
+sortedGrid <- h2o.getGrid(grid@grid_id, sort_by="mse", decreasing = FALSE)
+h2o.mse(h2o.performance(h2o.getModel(sortedGrid@model_ids[[1]]))) # 0.1537
+
+## find the range of max_depth for the top 5 models - can be used to set for further tuning
+topDepths = sortedGrid@summary_table$max_depth[1:5]
+minDepth = min(as.numeric(topDepths))
+maxDepth = max(as.numeric(topDepths))
+minDepth
+maxDepth
+
+# get metric of top 5 models
+for (i in 1:5) {
+  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
+  print(h2o.mse(h2o.performance(gbm, valid = TRUE)))
+}
+
+gbm <- h2o.getModel(sortedGrid@model_ids[[1]])
+gbm@parameters # ntrees = 10000
+h2o.mse(h2o.performance(gbm, newdata = test)) # check perf with test set
+
+gbm_pred_p2 = h2o.predict(gbm, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_gbm = as.data.frame(test_p2$Modelvar)
+p2_output_gbm$est_var = colnames(gbm_pred_p2[, -1])[max.col(gbm_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_gbm) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_gbm$est_var)) # identified no. of variants predicted
+sum(p2_output_gbm$est_var == p2_output_gbm$act_var)/nrow(p2_output_gbm) # accuracy level
+
+# blending technique
+prob = NULL
+k=10
+for (i in 1:k) { # avg of 10 models in grid search
+  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
+  if (is.null(prob)) prob = h2o.predict(gbm, test)
+  else prob = prob + h2o.predict(gbm, test)
+}
+prob <- prob/k
+head(prob)
+
+
+# P2: h2o Deep Learning ---------------------------------------------------
+# Ref: http://htmlpreview.github.io/?https://github.com/ledell/sldm4-h2o/blob/master/sldm4-deeplearning-h2o.html
+# Ref: https://www.slideshare.net/0xdata/h2o-world-top-10-deep-learning-tips-tricks-arno-candel?from_action=save
+
+library(h2o)
+h2o.init(min_mem_size="4g", max_mem_size = "8g")
+
+train = as.h2o(train_p2)
+test = as.h2o(test_p2)
+
+h2o.describe(train)
+h2o.describe(test)
+
+y <- 'Modelvar'
+x <- setdiff(names(df), y)
+
+dl_fit1 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "dl_fit1",
+                            # distribution = can be set
+                            hidden = c(20,20), # default is c(200,200), i.e. 2 hidden layers, with 200 neurons
+                            seed = 1) # not reproducibe if ran on multi core
+
+dl_fit2 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "dl_fit2",
+                            epochs = 50, # default 10, more will increase perf, but may overfit
+                            hidden = c(20,20),
+                            stopping_rounds = 0,  # disable early stopping
+                            seed = 1)
+
+dl_fit3 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            model_id = "dl_fit3",
+                            epochs = 50,
+                            hidden = c(20,20),
+                            nfolds = 3,                            #used for early stopping
+                            score_interval = 1,                    #used for early stopping
+                            stopping_rounds = 5,                   #used for early stopping
+                            stopping_metric = "misclassification", #used for early stopping
+                            stopping_tolerance = 1e-3,             #used for early stopping
+                            # score_validation_samples=N #for sampling validation dataset 
+                            # score_validation_samplings = 'Stratified' #for multi-class / imbalanced
+                            # l1=1e-4, l2=1e-4, hidden_dropout_ratio = [0.2, 0.3] #use regularization
+                            seed = 1)
+
+# perform hyperparameter search
+# random / grid search
+# hidden (2-5 layers, 10-2000 neurons per layer)
+# l1/ l2
+# adaptive_rate: true (rho, epsilon), false (rate, rate_annealing, rate_decay, momentum_start, momentum_stable, momentum_ramp)
+
+# if data is sparse / categorical predictors:
+# build tiny DL model, use h2o.deepfeatures() to extract lower-dim features
+# use random projection of categorical features into N-dim space, by 'max_categorical_features=N'
+# use GLRM to reduce dim of dataset
+# set 'sparse=True'
+
+dl_perf1 <- h2o.performance(model = dl_fit1, newdata = test)
+dl_perf2 <- h2o.performance(model = dl_fit2, newdata = test)
+dl_perf3 <- h2o.performance(model = dl_fit3, newdata = test)
+
+# Retreive test set MSE
+h2o.mse(dl_perf1) # 0.2225
+h2o.mse(dl_perf2) # 0.2085
+h2o.mse(dl_perf3) # 0.2057
+
+# utility functions to inspect models
+h2o.scoreHistory(dl_fit3)
+h2o.confusionMatrix(dl_fit3)
+
+dl_fit3@parameters
+plot(dl_fit3,
+     timestep = "epochs",
+     metric = "classification_error")
+
+# Get the CV models from the `dl_fit3` object
+cv_models <- sapply(dl_fit3@model$cross_validation_models, 
+                    function(i) h2o.getModel(i$name))
+
+# Plot the scoring history over time
+plot(cv_models[[1]], 
+     timestep = "epochs", 
+     metric = "classification_error")
+
+dl_pred_p2 = h2o.predict(dl_fit3, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_dl = as.data.frame(test_p2$Modelvar)
+p2_output_dl$est_var = p2_output_dl[, 1]
+colnames(p2_output_dl) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_dl$est_var)) # identified no. of variants predicted
+sum(p2_output_dl$est_var == p2_output_dl$act_var)/nrow(p2_output_dl) # accuracy level
+
+
+# P2: DL Grid Search ----------------------------------------------------------
+
+activation_opt <- c("Rectifier", 'RectifierWithDropuout', "Maxout", "Tanh")
+l1_opt <- c(0, 0.00001, 0.0001, 0.001, 0.01, 0.1)
+l2_opt <- c(0, 0.00001, 0.0001, 0.001, 0.01, 0.1)
+
+hyper_params <- list(activation = activation_opt, l1 = l1_opt, l2 = l2_opt)
+search_criteria <- list(strategy = "RandomDiscrete", max_runtime_secs = 600)
+
+dl_grid <- h2o.grid("deeplearning", x = x, y = y,
+                    grid_id = "dl_grid",
+                    training_frame = train,
+                    validation_frame = valid,
+                    seed = 1,
+                    hidden = c(20,20),
+                    hyper_params = hyper_params,
+                    search_criteria = search_criteria
+)
+
+dl_gridperf <- h2o.getGrid(grid_id = 'dl_grid',
+                           sort_by = 'logloss'
+                           # decreasing = TRUE
+)
+
+print(dl_gridperf)
+dl_gridperf@summary_table
+
+best_dl_model_id <- dl_gridperf@model_ids[[1]]
+best_dl <- h2o.getModel(best_dl_model_id)
+best_dl@allparameters
+
+best_dl_perf <- h2o.performance(model = best_dl, newdata = test)
+h2o.mse(best_dl_perf) # 0.2179 (logloss), 0.2154 (mse)
+
+# P2: DL Predict --------------------------------------------------------------
+
+dl_pred_p2 = h2o.predict(best_dl, data_for_pred) # need to manually id class with highest prob per row
+
+p2_output_dl = as.data.frame(test_p2$Modelvar)
+p2_output_dl$est_var = colnames(dl_pred_p2[, -1])[max.col(dl_pred_p2[, -1], ties.method="first")]
+colnames(p2_output_dl) = c('act_var', 'est_var')
+
+dim(plyr::count(p2_output_dl$est_var)) # identified no. of variants predicted
+sum(p2_output_dl$est_var == p2_output_dl$act_var)/nrow(p2_output_dl) # accuracy level
+
+# write.csv(p2_output_dl, file = 'p2_dl.csv')
+
+
+# P2: blending (avg prob from 4 models) -----------------------------------
+
+colnames(glm_pred_p2) == colnames(rf_pred_p2)
+colnames(glm_pred_p2) == colnames(gbm_pred_p2)
+colnames(glm_pred_p2) == colnames(dl_pred_p2)
+
+data_prob_glm = as.data.frame(glm_pred_p2[ , -1])
+data_prob_rf = as.data.frame(rf_pred_p2[ , -1])
+data_prob_gbm = as.data.frame(gbm_pred_p2[ , -1])
+data_prob_dl = as.data.frame(dl_pred_p2[ , -1])
+
+for (i in (1:nrow(glm_pred_p2))){
+  for (j in (1:ncol(glm_pred_p2))){
+    avg_prob_p2[i,j] = mean(data_prob_glm[i,j], data_prob_rf[i,j], data_prob_gbm[i,j], data_prob_dl[i,j])
+  }
+}
+
+for (i in (1:nrow(glm_pred_p2))){
+  for (j in (1:ncol(glm_pred_p2))){
+    print(c(i, j))
+  }
+}
+
+
+ncol(glm_pred_p2)
+
+  
+mean(glm_pred_p2[1,2], rf_pred_p2[1,2], gbm_pred_p2[1,2], dl_pred_p2[1,2])
+gbm_pred_p2[1,2]
+
+
+# P2: h20 AutoML(Classification Issues)-----------------------------------------------------------------
+
+str(train_p2)
+df = train_p2
+
+library(h2o)
+h2o.init(min_mem_size="2g", max_mem_size = "4g")
+h2o.shutdown()
+
+df <- as.h2o(df)
+
+h2o.describe(df)
+
+y <- 'Modelvar'
+# y <- 'Res.Price'
+x <- setdiff(names(df), y)
+
+splits <- h2o.splitFrame(df, ratios = c(0.7, .15) , seed = 1)
+train <- splits[[1]]
+valid <- splits[[2]]
+test <- splits[[3]]
+
+aml_p2 <- h2o.automl(x = x,
+                     y = y,
+                     training_frame = train,
+                     nfolds = 5,
+                     keep_cross_validation_predictions = TRUE,
+                     validation_frame = valid,
+                     leaderboard_frame = test,
+                     # exclude_algos = "GBM", # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
+                     max_runtime_secs = 600, # max_models
+                     seed = 1
+                     # project_name = "p2_final_price"
+)
+
+print(aml_p2@leaderboard)
+
+# Predictions
+
+df_test <- as.h2o(test_p2)s
+
+pred <- h2o.predict(aml_p2, df_test) # Issue: multi level classification return more data than total obs
+
+p2_h2o_est = as.vector(pred)
+
+# tabled predictions
+p2_h2o_tbl = cbind('Actual Var' = as.character(test_p2$Modelvar), 
+                   'Est Var' = p2_h2o_est
+)
+
+
+write.csv(p2_h2o_tbl, file = 'p2_h2o.csv')
+
 # Chevrolet: prep data ------------------------------------
 
 train_che = dplyr::filter(training_data, Brand=="CHEVROLET" &
                             !Modelvar %in% c('-', '0', '#N/A')
-                          )
+)
 summary(train_che[, -4]) # summary without the long list of features text
 
 test_che = dplyr::filter(testing_data, Brand=="CHEVROLET" & 
                            !Modelvar %in% c('-', '0', '#N/A')
-                         )
+)
 summary(test_che[, -4])
 
 train_che$CC_scl = as.numeric(scale(train_che$CC_adj))
@@ -506,7 +1297,7 @@ train_mzd = dplyr::filter(training_data, Brand=="Mazda")
 head(plyr::count(train_mzd$Modelvar))
 
 test_mzd = dplyr::filter(testing_data, Brand=="Mazda" & 
-                            !Modelvar %in% c('', '-', '0', '#N/A'))
+                           !Modelvar %in% c('', '-', '0', '#N/A'))
 head(plyr::count(test_mzd$Modelvar))
 
 # clean up spaces / upper-lower char and re-factor
@@ -574,7 +1365,7 @@ str(train_mzd)
 # Mazda: SVM --------------------------------------------------------------
 
 system.time(tune_radial_mzd <- tune(svm, Modelvar ~ ., data = train_mzd[,-c(1:3, 4:5, 8, 19)],
-                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
 
 # 700 obs, 20-6 variables
@@ -587,8 +1378,8 @@ tune_radial_mzd$best.parameters
 
 # Model Group NA
 svm_mzd = svm(Modelvar ~., data = train_mzd[,-c(1:3, 4:5, 8, 19)],
-               kernel="radial", cost=tune_radial_mzd$best.parameters$cost,
-               gamma=tune_radial_mzd$best.parameters$gamma, trace=F
+              kernel="radial", cost=tune_radial_mzd$best.parameters$cost,
+              gamma=tune_radial_mzd$best.parameters$gamma, trace=F
 )
 
 svm_est_mzd = predict(svm_mzd, newdata=test_mzd[,-c(1:3, 4:5, 8, 19)])
@@ -681,7 +1472,7 @@ str(train_ford)
 
 library(e1071)
 system.time(tune_radial_ford <- tune(svm, Modelvar ~ ., data = train_ford[,-c(1:2, 4:5, 8, 19)],
-                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+                                     kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
 
 # 700 obs, 20-6 variables
@@ -693,8 +1484,8 @@ tune_radial_ford$best.parameters
 # incl. manf yr, CC cost=100, gamma=0.1
 
 svm_ford = svm(Modelvar ~., data = train_ford[,-c(1:2, 4:5, 8, 19)],
-              kernel="radial", cost=tune_radial_ford$best.parameters$cost,
-              gamma=tune_radial_ford$best.parameters$gamma, trace=F
+               kernel="radial", cost=tune_radial_ford$best.parameters$cost,
+               gamma=tune_radial_ford$best.parameters$gamma, trace=F
 )
 
 svm_est_ford = predict(svm_ford, newdata=test_ford[,-c(1:2, 4:5, 8, 19)])
@@ -870,7 +1661,7 @@ str(train_kia)
 # Kia: SVM ----------------------------------------------------------------
 
 system.time(tune_radial_kia <- tune(svm, Modelvar ~ ., data = train_kia[,-c(1:2, 4:5, 17)],
-                                   kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
 
 # 1,213 obs, 19-5 variables
@@ -882,8 +1673,8 @@ tune_radial_kia$best.parameters
 # incl. manf yr, CC cost=100, gamma=0.1
 
 svm_kia = svm(Modelvar ~., data = train_kia[,-c(1:2, 4:5, 17)],
-             kernel="radial", cost=tune_radial_kia$best.parameters$cost,
-             gamma=tune_radial_kia$best.parameters$gamma, trace=F
+              kernel="radial", cost=tune_radial_kia$best.parameters$cost,
+              gamma=tune_radial_kia$best.parameters$gamma, trace=F
 )
 
 svm_est_kia = predict(svm_kia, newdata=test_kia[,-c(1:2, 4:5, 17)])
@@ -1027,7 +1818,7 @@ train_vw = dplyr::filter(training_data, Brand=="Volkswagen")
 head(plyr::count(train_vw$Modelvar))
 
 test_vw = dplyr::filter(testing_data, Brand=="Volkswagen" & 
-                           !Modelvar %in% c('', '-', '0', '#N/A'))
+                          !Modelvar %in% c('', '-', '0', '#N/A'))
 head(plyr::count(test_vw$Modelvar))
 
 # clean up spaces / upper-lower char and re-factor
@@ -1126,7 +1917,7 @@ str(train_vw)
 
 library(e1071)
 system.time(tune_radial_vw <- tune(svm, Modelvar ~ ., data = train_vw[,-c(1:2, 4:5, 17)],
-                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
+                                   kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
 )
 
 # 1,354 obs, 19-5 variables
@@ -1138,8 +1929,8 @@ tune_radial_vw$best.parameters
 # incl. manf yr, CC cost=10, gamma=0.1
 
 svm_vw = svm(Modelvar ~., data = train_vw[,-c(1:2, 4:5, 17)],
-              kernel="radial", cost=tune_radial_vw$best.parameters$cost,
-              gamma=tune_radial_vw$best.parameters$gamma, trace=F
+             kernel="radial", cost=tune_radial_vw$best.parameters$cost,
+             gamma=tune_radial_vw$best.parameters$gamma, trace=F
 )
 
 svm_est_vw = predict(svm_vw, newdata=test_vw[,-c(1:2, 4:5, 17)])
@@ -1443,631 +2234,7 @@ c(colnames(train_tyt), dim(train_tyt))
 # 19091.54    58.72 19366.04 ~322 min ~5 hrs
 
 
-# Perodua: All ------------------------------------------------------------
 
-train_p2 = dplyr::filter(training_data, Brand=="PERODUA")
-test_p2 = dplyr::filter(testing_data, Brand=="PERODUA")
-
-train_p2$CC_scl = as.numeric(scale(train_p2$CC_adj))
-test_p2$CC_scl = as.numeric(scale(test_p2$CC_adj))
-
-# filter training set only for variants with size >20
-train_p2 = train_p2 %>% 
-  group_by(Modelvar) %>%
-  dplyr::filter(n()>20) %>%
-  as.data.frame()
-
-train_p2 = droplevels(train_p2)
-test_p2 = droplevels(test_p2)
-
-# standardize Variant levels
-p2_var = unique(c(levels(train_p2$Modelvar),levels(test_p2$Modelvar)))
-train_p2$Modelvar = factor(train_p2$Modelvar, levels = p2_var)
-test_p2$Modelvar = factor(test_p2$Modelvar, levels = p2_var)
-
-summary(train_p2$Modelvar)
-summary(test_p2$Modelvar)
-
-# standardize Model levels
-p2_mdl = unique(c(levels(train_p2$Model),levels(test_p2$Model)))
-train_p2$Model = factor(train_p2$Model, levels = p2_mdl)
-test_p2$Model = factor(test_p2$Model, levels = p2_mdl)
-
-summary(train_p2$Model)
-summary(test_p2$Model)
-
-# standardize MfgYr levels
-p2_yr = unique(c(levels(train_p2$MfgYr), levels(test_p2$MfgYr)))
-train_p2$MfgYr = factor(train_p2$MfgYr, levels = p2_yr)
-test_p2$MfgYr = factor(test_p2$MfgYr, levels = p2_yr)
-
-summary(train_p2$MfgYr)
-summary(test_p2$MfgYr)
-
-str(train_p2)
-str(test_p2)
-
-# P2: Identify predictors-----------------------------------------------------
-to_drop = as.character()
-for (i in 9:(length(colnames(train_p2))-2)){
-  test = plyr::count(train_p2, colnames(train_p2)[i])
-  if (length(test$freq) == 1){ 
-    # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
-    to_drop = c(paste(colnames(train_p2)[i]), to_drop)
-  }
-}
-
-drops = c(to_drop, "ID", "Brand", "Features", "Price", "CC", "CC_adj")
-
-# drop all non-relevant predictors
-train_p2 = train_p2[, !names(train_p2) %in% drops]
-test_p2 = test_p2[, !names(test_p2) %in% drops]
-
-colnames(train_p2) == colnames(test_p2)
-colnames(train_p2)
-
-
-
-
-# P2: SVM -----------------------------------------------------------------
-dim(train_p2)
-
-system.time(tune_radial_p2 <- tune(svm, Modelvar ~ ., data = train_p2,
-                                    kernel="radial", ranges=list(cost=10^(-1:2), gamma=c(0.1:5)))
-)
-
-
-
-svm_p2 = svm(Modelvar ~., data = train_p2,
-              kernel="radial", cost=tune_radial_p2$best.parameters$cost,
-              gamma=tune_radial_p2$best.parameters$gamma, trace=F
-)
-
-svm_est_p2 = predict(svm_p2, newdata=test_p2)
-plyr::count(svm_est_p2)
-p2_est_lvl = unique(c(levels(svm_est_p2), levels(test_p2$Modelvar)))
-test_p2$Modelvar = factor(test_p2$Modelvar, levels = p2_est_lvl)
-svm_est_p2 = factor(svm_est_p2, levels = p2_est_lvl)
-
-1-sum(test_p2$Modelvar==svm_est_p2)/nrow(test_p2)
-
-p2_tbl = table(test_p2$Modelvar, svm_est_p2)
-write.csv(p2_tbl,"p2.csv")
-
-c(colnames(train_p2), dim(train_p2))
-
-# 18k obs, 11 var
-# user   system  elapsed 
-# 12621.70    30.49 12797.28 ~ 213 mins, 3.5 hrs
-
-# 9400 obs, 19-5 variables
-# user  system elapsed 
-# 3655.37    7.22 3680.47  ~61 mins
-
-# 9400 obs, 17-5 variables
-# user  system elapsed 
-# 3140.10    8.92 3261.57 ~54 mins
-
-
-
-
-# P2: h2o GLM -------------------------------------------------------------
-
-h2o.init(nthreads = -1, 
-         min_mem_size="4g", max_mem_size = "8g"
-         )
-
-data = as.h2o(train_p2)
-data_for_pred = as.h2o(test_p2[, -2])
-
-y <- 'Modelvar'
-x <- setdiff(names(data), y)
-
-
-splits <- h2o.splitFrame(data = data, 
-                         ratios = c(0.7, 0.15),  #partition data into 70%, 15%, 15% chunks
-                         seed = 1)  #setting a seed will guarantee reproducibility
-train <- splits[[1]]
-valid <- splits[[2]]
-test <- splits[[3]]
-
-glm_fit1 <- h2o.glm(x = x, 
-                    y = y, 
-                    training_frame = train,
-                    model_id = "glm_fit1",
-                    family = "multinomial"
-)  #similar to R's glm, h2o.glm has the family argument
-# binomial, gaussian (int/num), ordinal (cat>3 lvls), quasibinomial (num), poisson, gamma, tweedie
-
-# automatic tuning of lambda, for regularization
-system.time(glm_fit2 <- h2o.glm(x = x, 
-                        y = y, 
-                        training_frame = data,
-                        model_id = "glm_fit2",
-                        # validation_frame = valid,
-                        family = "multinomial",
-                        lambda_search = TRUE)
-) # 981.54s ~ 15 mins for full data # 684s ~ 11 mins for split data
-
-# Let's compare the performance of the two GLMs
-glm_perf1 <- h2o.performance(model = glm_fit1,
-                             newdata = test)
-glm_perf2 <- h2o.performance(model = glm_fit2,
-                             newdata = test)
-
-# Print model performance
-# glm_perf1
-# glm_perf2
-
-h2o.mse(glm_perf1) # 0.2378
-h2o.mse(glm_perf2) # 0.2176
-
-# AUC applicable for binomial classification
-# h2o.auc(glm_perf1)  
-# h2o.auc(glm_perf2)
-
-# Error: DistributedException: 'null', caused by java.lang.ArrayIndexOutOfBoundsException
-# error due to unarranged x, y for test set
-h2o.predict(glm_fit1, newdata = data_for_pred)
-h2o.predict(glm_fit2, newdata = data_for_pred)
-
-p2_glm = h2o.predict(glm_fit2, newdata = data_for_pred)
-p2_glm_output = as.data.frame(test_p2$Modelvar)
-p2_glm_output$est_var = colnames(p2_glm[, -1])[max.col(p2_glm[, -1], ties.method="first")]
-colnames(p2_glm_output) = c('act_var', 'est_var')
-
-dim(plyr::count(p2_glm_output$est_var)) # identified no. of variants predicted
-
-sum(p2_glm_output$est_var == p2_glm_output$act_var)/nrow(p2_glm_output) # accuracy level
-
-p2_glm_for_output = as.data.frame(p2_glm_output) # weird format, blanks repl with 'X'
-
-write.csv(p2_glm_for_output, file = 'glm_p2.csv')
-
-# P2: h2o Random Forest ---------------------------------------------------
-
-# Ref: https://github.com/h2oai/h2o-tutorials/blob/master/h2o-open-tour-2016/chicago/intro-to-h2o.R
-
-h2o.init(nthreads = -1, 
-         min_mem_size="4g", max_mem_size = "8g"
-)
-
-
-rf_fit1 <- h2o.randomForest(x = x,
-                            y = y,
-                            training_frame = train,
-                            model_id = "rf_fit1",
-                            seed = 1)
-
-
-rf_fit2 <- h2o.randomForest(x = x,
-                            y = y,
-                            training_frame = train,
-                            model_id = "rf_fit2",
-                            #validation_frame = valid,  #only used if stopping_rounds > 0
-                            ntrees = 100, # default 50, more shud increase perf
-                            seed = 1)
-
-# Let's compare the performance of the two RFs
-rf_perf1 <- h2o.performance(model = rf_fit1,
-                            newdata = test)
-rf_perf2 <- h2o.performance(model = rf_fit2,
-                            newdata = test)
-
-# Print model performance
-rf_perf1
-rf_perf2
-
-# Retreive test set AUC
-h2o.mse(rf_perf1) # 0.2111
-h2o.mse(rf_perf2) # 0.2108
-
-system.time(rf_fit3 <- h2o.randomForest(x = x,
-                            y = y,
-                            training_frame = train,
-                            model_id = "rf_fit3",
-                            seed = 1,
-                            nfolds = 5) # cross-validation perf
-) # 92.68s, 1.5 mins
-
-h2o.mse(rf_fit3, xval=TRUE)
-
-rf_pred_p2 = h2o.predict(rf_fit3, data_for_pred) # need to manually id class with highest prob per row
-
-p2_output_rf = as.data.frame(test_p2$Modelvar)
-p2_output_rf$est_var = colnames(rf_pred_p2[, -1])[max.col(rf_pred_p2[, -1], ties.method="first")]
-colnames(p2_output_rf) = c('act_var', 'est_var')
-
-dim(plyr::count(p2_output_rf$est_var)) # identified no. of variants predicted
-sum(p2_output_rf$est_var == p2_output_rf$act_var)/nrow(p2_output_rf) # accuracy level
-
-# P2: h2o GBM -------------------------------------------------------------
-
-gbm_fit1 <- h2o.gbm(x = x,
-                    y = y,
-                    training_frame = train,
-                    model_id = "gbm_fit1",
-                    seed = 1)
-
-gbm_fit2 <- h2o.gbm(x = x,
-                    y = y,
-                    training_frame = train,
-                    model_id = "gbm_fit2",
-                    #validation_frame = valid,  #only used if stopping_rounds > 0
-                    ntrees = 500, # default 50, need to take care of overfitting
-                    seed = 1)
-
-gbm_fit3 <- h2o.gbm(x = x,
-                    y = y,
-                    training_frame = train,
-                    model_id = "gbm_fit3",
-                    validation_frame = valid,  #only used if stopping_rounds > 0
-                    ntrees = 500,
-                    score_tree_interval = 5,      #used for early stopping
-                    stopping_rounds = 3,          #used for early stopping
-                    stopping_metric = "AUTO",      #used for early stopping
-                    stopping_tolerance = 0.0005,  #used for early stopping
-                    seed = 1)
-
-system.time(gbm_fit4 <- h2o.gbm(
-                        ## standard model parameters
-                        x = x, 
-                        y = y, 
-                        training_frame = train, 
-                        validation_frame = valid,
-                        model_id = "gbm_fit4",
-                        
-                        ## more trees is better if the learning rate is small enough 
-                        ## here, use "more than enough" trees - we have early stopping
-                        ntrees = 10000,                                                            
-                        
-                        ## smaller learning rate is better (this is a good value for most datasets, but see below for annealing)
-                        learn_rate=0.01,                                                         
-                        
-                        ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
-                        stopping_rounds = 5, stopping_tolerance = 1e-4, stopping_metric = "AUTO", 
-                        
-                        ## sample 80% of rows per tree
-                        sample_rate = 0.8,                                                       
-                        
-                        ## sample 80% of columns per split
-                        col_sample_rate = 0.8,                                                   
-                        
-                        ## fix a random number generator seed for reproducibility
-                        seed = 1,                                                             
-                        
-                        ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
-                        score_tree_interval = 10                                                 
-                      )
-) # 118.95s, 2 mins
-
-gbm_perf1 <- h2o.performance(model = gbm_fit1,
-                             newdata = test)
-gbm_perf2 <- h2o.performance(model = gbm_fit2,
-                             newdata = test)
-gbm_perf3 <- h2o.performance(model = gbm_fit3,
-                             newdata = test)
-gbm_perf4 <- h2o.performance(model = gbm_fit4,
-                             newdata = test)
-
-# Print model performance
-# gbm_perf1
-
-# Retreive test set MSE
-h2o.mse(gbm_perf1) # 0.1952
-h2o.mse(gbm_perf2) # 0.1954
-h2o.mse(gbm_perf3) # 0.1952
-h2o.mse(gbm_perf4) # 0.1948
-
-h2o.scoreHistory(gbm_fit2) # scoring based on training set only
-h2o.scoreHistory(gbm_fit3) # earlier stopping at no of trees, both training & validation perf metrics available
-
-plot(gbm_fit3, 
-     timestep = "number_of_trees", 
-     metric = "Classification_error")
-plot(gbm_fit3, 
-     timestep = "number_of_trees", 
-     metric = "logloss")
-
-gbm_pred_p2 = h2o.predict(gbm_fit3, data_for_pred) # need to manually id class with highest prob per row
-
-p2_output_gbm = as.data.frame(test_p2$Modelvar)
-p2_output_gbm$est_var = colnames(gbm_pred_p2[, -1])[max.col(gbm_pred_p2[, -1], ties.method="first")]
-colnames(p2_output_gbm) = c('act_var', 'est_var')
-
-dim(plyr::count(p2_output_gbm$est_var)) # identified no. of variants predicted
-sum(p2_output_gbm$est_var == p2_output_gbm$act_var)/nrow(p2_output_gbm) # accuracy level
-
-
-# P2: h2o GBM Grid Search -------------------------------------------------
-
-hyper_params = list(max_depth = seq(1,20,2) # usual depth = 10, max_depth = c(4,6,8,12,16,20) faster for larger datasets
-                    # learn_rate = 0.05, # seq(0.05, 0.1, 0.01), # smaller learning rate is better
-                    ## since we have learning_rate_annealing, we can afford to start with a bigger learning rate
-                                 
-                    # learn_rate_annealing = 0.99 # learning rate annealing: learning_rate shrinks by 1% after every tree 
-                    ## (use 1.00 to disable, but then lower the learning_rate)
-                    
-                    
-                    # sample_rate = seq(0.2, 1, 0.01), # sample % of rows per tree
-                    # col_sample_rate = seq(0.2, 1, 0.01), # sample % of columns per split
-                    # col_sample_rate_per_tree = seq(0.2, 1, 0.01)
-                    # col_sample_rate_change_per_level = seq(0.9, 1.1, 0.01), # col sampling / split as a function of split depth
-                    # min_rows = 2^seq(0, log2(nrow(train))-1, 1), # number of min rows in terminal node
-                    # nbins = 2^seq(4, 10, 1), # no. of bins for split-finding for cont/int cols
-                    # nbins_cats = 2^seq(4, 12, 1), # for cat col
-                    # min_split_improvement = c(0, 1e-8, 1e-6, 1e-4) # min relative error improvement thresholds for a split to occur
-                    # histogram_type = c("UniformAddptive", 'QuantilesGlobal', 'RoundRobin') # QG, RR good for num col with outliers
-)
-
-search_criteria <- list(strategy = "RandomDiscrete", # 'Cartesian'
-                        max_runtime_secs = 600,
-                        # max_models = 5,
-                        stopping_rounds = 5,
-                        stopping_metric = 'AUTO',
-                        stopping_tolerance = 1e-3
-)
-
-system.time(grid <- h2o.grid(
-                            hyper_params = hyper_params,
-                            search_criteria = search_criteria,
-                            algorithm="gbm",
-                            grid_id="depth_grid", # identifier for the grid, to later retrieve it
-                            
-                            x = x, 
-                            y = y, 
-                            training_frame = train, 
-                            validation_frame = valid,
-                            
-                            ntrees = 10000, ## more trees is better if the learning rate is small enough 
-                            ## here, use "more than enough" trees - we have early stopping
-                            
-                            seed = 1, 
-                            learn_rate = 0.01,
-                            score_tree_interval = 10 # score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
-                            )
-)
-
-grid@summary_table # default ordered by logloss
-## sort the grid models by preferred metric
-sortedGrid <- h2o.getGrid(grid@grid_id, sort_by="mse", decreasing = FALSE)
-h2o.mse(h2o.performance(h2o.getModel(sortedGrid@model_ids[[1]]))) # 0.1537
-
-## find the range of max_depth for the top 5 models - can be used to set for further tuning
-topDepths = sortedGrid@summary_table$max_depth[1:5]
-minDepth = min(as.numeric(topDepths))
-maxDepth = max(as.numeric(topDepths))
-minDepth
-maxDepth
-
-# get metric of top 5 models
-for (i in 1:5) {
-  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
-  print(h2o.mse(h2o.performance(gbm, valid = TRUE)))
-}
-
-gbm <- h2o.getModel(sortedGrid@model_ids[[1]])
-gbm@parameters # ntrees = 10000
-h2o.mse(h2o.performance(gbm, newdata = test)) # check perf with test set
-
-gbm_pred_p2 = h2o.predict(gbm, data_for_pred) # need to manually id class with highest prob per row
-
-p2_output_gbm = as.data.frame(test_p2$Modelvar)
-p2_output_gbm$est_var = colnames(gbm_pred_p2[, -1])[max.col(gbm_pred_p2[, -1], ties.method="first")]
-colnames(p2_output_gbm) = c('act_var', 'est_var')
-
-dim(plyr::count(p2_output_gbm$est_var)) # identified no. of variants predicted
-sum(p2_output_gbm$est_var == p2_output_gbm$act_var)/nrow(p2_output_gbm) # accuracy level
-
-# blending technique
-prob = NULL
-k=10
-for (i in 1:k) { # avg of 10 models in grid search
-  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
-  if (is.null(prob)) prob = h2o.predict(gbm, test)
-  else prob = prob + h2o.predict(gbm, test)
-}
-prob <- prob/k
-head(prob)
-
-
-# P2: h2o Deep Learning ---------------------------------------------------
-# Ref: http://htmlpreview.github.io/?https://github.com/ledell/sldm4-h2o/blob/master/sldm4-deeplearning-h2o.html
-# Ref: https://www.slideshare.net/0xdata/h2o-world-top-10-deep-learning-tips-tricks-arno-candel?from_action=save
-
-library(h2o)
-h2o.init(min_mem_size="4g", max_mem_size = "8g")
-
-train = as.h2o(train_p2)
-test = as.h2o(test_p2)
-
-h2o.describe(train)
-h2o.describe(test)
-
-y <- 'Modelvar'
-x <- setdiff(names(df), y)
-
-dl_fit1 <- h2o.deeplearning(x = x,
-                            y = y,
-                            training_frame = train,
-                            model_id = "dl_fit1",
-                            # distribution = can be set
-                            hidden = c(20,20), # default is c(200,200), i.e. 2 hidden layers, with 200 neurons
-                            seed = 1) # not reproducibe if ran on multi core
-
-dl_fit2 <- h2o.deeplearning(x = x,
-                            y = y,
-                            training_frame = train,
-                            model_id = "dl_fit2",
-                            epochs = 50, # default 10, more will increase perf, but may overfit
-                            hidden = c(20,20),
-                            stopping_rounds = 0,  # disable early stopping
-                            seed = 1)
-
-dl_fit3 <- h2o.deeplearning(x = x,
-                            y = y,
-                            training_frame = train,
-                            model_id = "dl_fit3",
-                            epochs = 50,
-                            hidden = c(20,20),
-                            nfolds = 3,                            #used for early stopping
-                            score_interval = 1,                    #used for early stopping
-                            stopping_rounds = 5,                   #used for early stopping
-                            stopping_metric = "misclassification", #used for early stopping
-                            stopping_tolerance = 1e-3,             #used for early stopping
-                            # score_validation_samples=N #for sampling validation dataset 
-                            # score_validation_samplings = 'Stratified' #for multi-class / imbalanced
-                            # l1=1e-4, l2=1e-4, hidden_dropout_ratio = [0.2, 0.3] #use regularization
-                            seed = 1)
-
-# perform hyperparameter search
-# random / grid search
-# hidden (2-5 layers, 10-2000 neurons per layer)
-# l1/ l2
-# adaptive_rate: true (rho, epsilon), false (rate, rate_annealing, rate_decay, momentum_start, momentum_stable, momentum_ramp)
-
-# if data is sparse / categorical predictors:
-# build tiny DL model, use h2o.deepfeatures() to extract lower-dim features
-# use random projection of categorical features into N-dim space, by 'max_categorical_features=N'
-# use GLRM to reduce dim of dataset
-# set 'sparse=True'
-
-dl_perf1 <- h2o.performance(model = dl_fit1, newdata = test)
-dl_perf2 <- h2o.performance(model = dl_fit2, newdata = test)
-dl_perf3 <- h2o.performance(model = dl_fit3, newdata = test)
-
-# Retreive test set MSE
-h2o.mse(dl_perf1) # 0.2225
-h2o.mse(dl_perf2) # 0.2085
-h2o.mse(dl_perf3) # 0.2057
-
-# utility functions to inspect models
-h2o.scoreHistory(dl_fit3)
-h2o.confusionMatrix(dl_fit3)
-
-dl_fit3@parameters
-plot(dl_fit3,
-     timestep = "epochs",
-     metric = "classification_error")
-
-# Get the CV models from the `dl_fit3` object
-cv_models <- sapply(dl_fit3@model$cross_validation_models, 
-                    function(i) h2o.getModel(i$name))
-
-# Plot the scoring history over time
-plot(cv_models[[1]], 
-     timestep = "epochs", 
-     metric = "classification_error")
-
-dl_pred_p2 = h2o.predict(dl_fit3, data_for_pred) # need to manually id class with highest prob per row
-
-p2_output_dl = as.data.frame(test_p2$Modelvar)
-p2_output_dl$est_var = colnames(dl_pred_p2[, -1])[max.col(dl_pred_p2[, -1], ties.method="first")]
-colnames(p2_output_dl) = c('act_var', 'est_var')
-
-dim(plyr::count(p2_output_dl$est_var)) # identified no. of variants predicted
-sum(p2_output_dl$est_var == p2_output_dl$act_var)/nrow(p2_output_dl) # accuracy level
-
-
-# P2: DL Grid Search ----------------------------------------------------------
-
-activation_opt <- c("Rectifier", 'RectifierWithDropuout', "Maxout", "Tanh")
-l1_opt <- c(0, 0.00001, 0.0001, 0.001, 0.01, 0.1)
-l2_opt <- c(0, 0.00001, 0.0001, 0.001, 0.01, 0.1)
-
-hyper_params <- list(activation = activation_opt, l1 = l1_opt, l2 = l2_opt)
-search_criteria <- list(strategy = "RandomDiscrete", max_runtime_secs = 600)
-
-dl_grid <- h2o.grid("deeplearning", x = x, y = y,
-                    grid_id = "dl_grid",
-                    training_frame = train,
-                    validation_frame = valid,
-                    seed = 1,
-                    hidden = c(20,20),
-                    hyper_params = hyper_params,
-                    search_criteria = search_criteria
-)
-
-dl_gridperf <- h2o.getGrid(grid_id = 'dl_grid',
-                           sort_by = 'logloss'
-                           # decreasing = TRUE
-)
-
-print(dl_gridperf)
-dl_gridperf@summary_table
-
-best_dl_model_id <- dl_gridperf@model_ids[[1]]
-best_dl <- h2o.getModel(best_dl_model_id)
-best_dl@allparameters
-
-best_dl_perf <- h2o.performance(model = best_dl, newdata = test)
-h2o.mse(best_dl_perf) # 0.2179 (logloss), 0.2154 (mse)
-
-# P2: DL Predict --------------------------------------------------------------
-
-dl_pred_p2 = h2o.predict(best_dl, data_for_pred) # need to manually id class with highest prob per row
-
-p2_output_dl = as.data.frame(test_p2$Modelvar)
-p2_output_dl$est_var = colnames(dl_pred_p2[, -1])[max.col(dl_pred_p2[, -1], ties.method="first")]
-colnames(p2_output_dl) = c('act_var', 'est_var')
-
-dim(plyr::count(p2_output_dl$est_var)) # identified no. of variants predicted
-sum(p2_output_dl$est_var == p2_output_dl$act_var)/nrow(p2_output_dl) # accuracy level
-
-# write.csv(p2_output_dl, file = 'p2_dl.csv')
-
-# P2: h20 AutoML(Issues)-----------------------------------------------------------------
-
-str(train_p2)
-df = train_p2
-
-library(h2o)
-h2o.init(min_mem_size="2g", max_mem_size = "4g")
-h2o.shutdown()
-
-df <- as.h2o(df)
-
-h2o.describe(df)
-
-y <- 'Modelvar'
-# y <- 'Res.Price'
-x <- setdiff(names(df), y)
-
-splits <- h2o.splitFrame(df, ratios = c(0.7, .15) , seed = 1)
-train <- splits[[1]]
-valid <- splits[[2]]
-test <- splits[[3]]
-
-aml_p2 <- h2o.automl(x = x,
-                     y = y,
-                     training_frame = train,
-                     nfolds = 5,
-                     keep_cross_validation_predictions = TRUE,
-                     validation_frame = valid,
-                     leaderboard_frame = test,
-                     # exclude_algos = "GBM", # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
-                     max_runtime_secs = 600, # max_models
-                     seed = 1
-                     # project_name = "p2_final_price"
-)
-
-print(aml_p2@leaderboard)
-
-# Predictions
-
-df_test <- as.h2o(test_p2)
-
-pred <- h2o.predict(aml_p2, df_test) # Issue: multi level classification return more data than total obs
-
-p2_h2o_est = as.vector(pred)
-
-# tabled predictions
-p2_h2o_tbl = cbind('Actual Var' = as.character(test_p2$Modelvar), 
-                   'Est Var' = p2_h2o_est
-)
-
-
-write.csv(p2_h2o_tbl, file = 'p2_h2o.csv')
 
 # Proton (P1): All -------------------------------------------------------------
 
