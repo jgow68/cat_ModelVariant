@@ -208,50 +208,56 @@ dim(training_data2) # 100k obs
 dim(training_data3) # 100k obs
 # dim(training_data4) #109,591 obs
 
+
+# Decide dataset to merge -------------------------------------------------
+
 # 1st case: choose most recent data set for training
-# training_data = training_data2
+training_data = training_data2
 
 # 2nd case: merge historical datasets by outer join 2 df
 # consider using data.table for faster computation
 
-# Remove duplicates that exist in data set right from the start
-
-training_data1 = training_data1[!duplicated(training_data1$ID), ]
-training_data2 = training_data2[!duplicated(training_data2$ID), ]
-training_data3 = training_data3[!duplicated(training_data3$ID), ]
-
-# training_data_merged = merge(training_data1, training_data2, all=TRUE) # use left join to prioritize newer datasets
-# training_data = merge(training_data, training_data3, all=TRUE)
-# training_data = merge(training_data, training_data4, all=TRUE)
-
-rm(training_data) # reset training data
-
-# Merge data set for training (Can be improved)
-
-training_data_merged = dplyr::left_join(training_data1, training_data2)
-
-head(training_data_merged[duplicated(training_data_merged$ID), ])
-
-ID_init = training_data_merged$ID
-training_data_init = dplyr::filter(training_data2, !(ID %in% ID_init))
-
-training_data = merge(training_data_merged, training_data_init, all=TRUE)
-
-head(training_data[duplicated(training_data$ID), ])
-
-training_data = merge(training_data, training_data2[!ID_init, ], all=TRUE)
-
-head(training_data[duplicated(training_data$ID), ])
-
-# now merge the 3rd dataset
-ID_init = training_data$ID
-training_data_init = dplyr::filter(training_data3, !(ID %in% ID_init))
-
-training_data = merge(training_data, training_data_init, all=TRUE)
-head(training_data[duplicated(training_data$ID), ])
+# # Remove duplicates that exist in data set right from the start
+# 
+# training_data1 = training_data1[!duplicated(training_data1$ID), ]
+# training_data2 = training_data2[!duplicated(training_data2$ID), ]
+# training_data3 = training_data3[!duplicated(training_data3$ID), ]
+# 
+# # training_data_merged = merge(training_data1, training_data2, all=TRUE) # use left join to prioritize newer datasets
+# # training_data = merge(training_data, training_data3, all=TRUE)
+# # training_data = merge(training_data, training_data4, all=TRUE)
+# 
+# rm(training_data) # reset training data
+# 
+# # Merge data set for training (Can be improved)
+# 
+# training_data_merged = dplyr::left_join(training_data1, training_data2)
+# 
+# head(training_data_merged[duplicated(training_data_merged$ID), ])
+# 
+# ID_init = training_data_merged$ID
+# training_data_init = dplyr::filter(training_data2, !(ID %in% ID_init))
+# 
+# training_data = merge(training_data_merged, training_data_init, all=TRUE)
+# 
+# head(training_data[duplicated(training_data$ID), ])
+# 
+# training_data = merge(training_data, training_data2[!ID_init, ], all=TRUE)
+# 
+# head(training_data[duplicated(training_data$ID), ])
+# 
+# # now merge the 3rd dataset
+# ID_init = training_data$ID
+# training_data_init = dplyr::filter(training_data3, !(ID %in% ID_init))
+# 
+# training_data = merge(training_data, training_data_init, all=TRUE)
+# head(training_data[duplicated(training_data$ID), ])
 
 dim(training_data)
 # merge Mar-May'18 ~210k obs
+
+
+# Prep merged data ---------------------------------------------------------------
 
 # re-factorize data
 
@@ -377,8 +383,43 @@ dim(df_split_train)
 dim(df_split_valid)
 dim(df_split_test)
 
+# h2o glm -----------------------------------------------------------------
 
-# AutoML ------------------------------------------------------------------
+h2o.init(min_mem_size="4g", max_mem_size = "8g")
+
+df_train <- as.h2o(df_split_train)
+df_valid <- as.h2o(df_split_valid)
+df_test <- as.h2o(df_split_test)
+
+y <- 'Modelvar'
+x <- setdiff(names(df_train), y)
+
+system.time(glm_fit1 <- h2o.glm(x = x, 
+                    y = y, 
+                    training_frame = df_train,
+                    validation_frame = df_valid,
+                    model_id = "glm_fit1",
+                    family = "multinomial"))
+
+system.time(glm_fit2 <- h2o.glm(x = x, 
+                                y = y, 
+                                training_frame = df_train,
+                                model_id = "glm_fit2",
+                                validation_frame = df_valid,
+                                family = "multinomial",
+                                lambda_search = TRUE))
+
+# Let's compare the performance of the two GLMs
+glm_perf1 <- h2o.performance(model = glm_fit1,
+                             newdata = df_test)
+glm_perf2 <- h2o.performance(model = glm_fit2,
+                             newdata = df_test)
+
+
+h2o.mse(glm_perf1) # 0.2378
+h2o.mse(glm_perf2) # 0.2176
+
+# AutoML (too long to run for full dataset)------------------------------------------------------------------
 
 library(h2o)
 h2o.init(min_mem_size="4g", max_mem_size = "8g")
@@ -400,7 +441,7 @@ AML_all <- h2o.automl(x = x,
                      leaderboard_frame = df_test,
                      exclude_algos = c("DeepLearning"), # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
                      #max_runtime_secs = 60, 
-                     max_models = 5,
+                     max_models = 1,
                      seed = 1,
                      project_name = "Class_all_Aug_Sept18"
 )
