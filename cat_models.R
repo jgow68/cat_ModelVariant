@@ -2,7 +2,7 @@
 
 # Read data from csv ------------------------------------------------------
 
-setwd("~/Github Folder/cat_ModelVariant")
+# setwd("~/Github Folder/cat_ModelVariant")
 
 # form training df
 data1 = read.csv('Sept18_V2.csv')
@@ -383,13 +383,16 @@ dim(df_split_train)
 dim(df_split_valid)
 dim(df_split_test)
 
-# h2o glm -----------------------------------------------------------------
 
+
+# create h2o df -----------------------------------------------------------
+library(h2o)
 h2o.init(min_mem_size="4g", max_mem_size = "8g")
-
 df_train <- as.h2o(df_split_train)
 df_valid <- as.h2o(df_split_valid)
 df_test <- as.h2o(df_split_test)
+
+# h2o glm (too long to tune)-----------------------------------------------------------------
 
 y <- 'Modelvar'
 x <- setdiff(names(df_train), y)
@@ -418,6 +421,57 @@ glm_perf2 <- h2o.performance(model = glm_fit2,
 
 h2o.mse(glm_perf1) # 0.2378
 h2o.mse(glm_perf2) # 0.2176
+
+
+# h2o gbm -----------------------------------------------------------------
+
+system.time(gbm_fit4 <- h2o.gbm(
+  ## standard model parameters
+  x = x, 
+  y = y, 
+  training_frame = df_train, 
+  validation_frame = df_valid,
+  model_id = "gbm_fit4",
+  
+  ## more trees is better if the learning rate is small enough 
+  ## here, use "more than enough" trees - we have early stopping
+  ntrees = 10000,                                                            
+  
+  ## smaller learning rate is better (this is a good value for most datasets, but see below for annealing)
+  learn_rate=0.01,                                                         
+  
+  ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
+  stopping_rounds = 5, stopping_tolerance = 1e-4, stopping_metric = "AUTO", 
+  
+  ## sample 80% of rows per tree
+  sample_rate = 0.8,                                                       
+  
+  ## sample 80% of columns per split
+  col_sample_rate = 0.8,                                                   
+  
+  ## fix a random number generator seed for reproducibility
+  seed = 1,                                                             
+  
+  ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+  score_tree_interval = 10)
+) # 2,500s, ~ 41 mins
+
+h2o.mse(gbm_fit4, valid = TRUE) # 15% validation error
+
+plot(gbm_fit4, 
+     timestep = "number_of_trees", 
+     metric = "Classification_error") # not much improvements after 10 trees
+
+scoring_history_tbl = as.data.frame(gbm_fit4@model$scoring_history)
+scoring_history_tbl
+
+gbm_fit4@model$variable_importances
+
+
+#gbm_all_path = h2o.saveModel(gbm_fit4, path=getwd(), force = TRUE)
+#h2o.loadModel(gbm_al_path)
+
+
 
 # AutoML (too long to run for full dataset)------------------------------------------------------------------
 
