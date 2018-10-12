@@ -456,7 +456,7 @@ system.time(gbm_fit4 <- h2o.gbm(
   score_tree_interval = 10)
 ) # 2,500s, ~ 41 mins
 
-h2o.mse(gbm_fit4, valid = TRUE) # 15% validation error
+h2o.logloss(gbm_fit4, valid = TRUE) # 0.458 logloss
 
 plot(gbm_fit4, 
      timestep = "number_of_trees", 
@@ -470,6 +470,84 @@ gbm_fit4@model$variable_importances
 
 #gbm_all_path = h2o.saveModel(gbm_fit4, path=getwd(), force = TRUE)
 #h2o.loadModel(gbm_al_path)
+
+
+# h2o gbm grid search ---------------------------------------------------------
+
+hyper_params = list(max_depth = seq(1, 5, 1),
+                    learn_rate = seq(0.05, 0.1, 0.01), # smaller learning rate is better
+                    learn_rate_annealing = 0.99
+                    # sample_rate = seq(0.2, 1, 0.01), # sample % of rows per tree
+                    # col_sample_rate = seq(0.2, 1, 0.01), # sample % of columns per split
+                    # col_sample_rate_per_tree = seq(0.2, 1, 0.01),
+                    # col_sample_rate_change_per_level = seq(0.9, 1.1, 0.01), # col sampling / split as a function of split depth
+                    # min_rows = 2^seq(0, log2(nrow(df_train))-1, 1), # number of min rows in terminal node
+                    # nbins = 2^seq(4, 10, 1), # no. of bins for split-finding for cont/int cols
+                    #nbins_cats = 2^seq(4, 12, 1), # for cat col
+                    #min_split_improvement = c(0, 1e-8, 1e-6, 1e-4) # min relative error improvement thresholds for a split to occur
+                    #histogram_type = c("UniformAddptive", 'QuantilesGlobal', 'RoundRobin') # QG, RR good for num col with outliers
+)
+
+search_criteria <- list(strategy = "RandomDiscrete", # 'Cartesian'
+                        max_runtime_secs = 3200,
+                        # max_models = 5,
+                        stopping_rounds = 5,
+                        stopping_metric = 'AUTO',
+                        stopping_tolerance = 1e-3)
+
+system.time(grid <- h2o.grid(
+  hyper_params = hyper_params,
+  search_criteria = search_criteria,
+  algorithm="gbm",
+  grid_id="depth_grid", # identifier for the grid, to later retrieve it
+  x = x, 
+  y = y, 
+  training_frame = df_train, 
+  validation_frame = df_valid,
+  ntrees = 10000, ## more trees is better if the learning rate is small enough 
+  ## here, use "more than enough" trees - we have early stopping
+  
+  seed = 1)
+  #learn_rate = 0.01,
+  #score_tree_interval = 10) # score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+)
+
+h2o.removeAll()
+
+grid@summary_table # default ordered by logloss
+
+# search time: 10 mins, only 1 model is trained
+# search time: 60 mins, 2 models only??
+# search time: 120 mins, 3 models
+h2o.logloss((h2o.getModel(grid@model_ids[[1]])), valid = TRUE)
+
+# h2o.logloss(h2o.performance(h2o.getModel(grid@model_ids[[1]]), valid = TRUE))
+
+# Performance:
+# 10 mins give us logloss 0.74
+# 60 mins: logloss 0.38 (max depth 3)
+# 120 mins: logloss 0.45 (max depth 1)
+
+
+
+# save best model
+
+# gbm_search_best_model = h2o.getModel(grid@model_ids[[1]])
+# gbm_search_saved_model = h2o.saveModel(gbm_search_best_model, path=getwd(), force = TRUE)
+
+h2o.confusionMatrix(h2o.getModel(grid@model_ids[[1]]))
+
+## sort the grid models by preferred metric
+sortedGrid <- h2o.getGrid(grid@grid_id, sort_by="mse", decreasing = FALSE)
+
+
+## find the range of max_depth for the top 5 models - can be used to set for further tuning
+topDepths = sortedGrid@summary_table$max_depth[1:5]
+minDepth = min(as.numeric(topDepths))
+maxDepth = max(as.numeric(topDepths))
+minDepth
+maxDepth
+
 
 
 
@@ -493,15 +571,16 @@ AML_all <- h2o.automl(x = x,
                      keep_cross_validation_predictions = TRUE,
                      validation_frame = df_valid,
                      leaderboard_frame = df_test,
-                     exclude_algos = c("DeepLearning"), # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
-                     #max_runtime_secs = 60, 
-                     max_models = 1,
+                     exclude_algos = c("DeepLearning", "DRF"), # exclude_algos = c("GLM", "DeepLearning", "GBM", DRF", "StackedEnsemble"),
+                     max_runtime_secs = 3600, 
+                     #max_models = 1,
                      seed = 1,
-                     project_name = "Class_all_Aug_Sept18"
-)
+                     project_name = "Class_all_Aug_Sept18")
+
+# cant even train 1 DRF model in 1 hr
 
 print(AML_all@leaderboard)
-
+AML_all@leader
 h2o.mean_per_class_error(AML_all@leader)
 h2o.performance(AML_all@leader)
 
