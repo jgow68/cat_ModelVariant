@@ -5,8 +5,7 @@
 # setwd("~/Github Folder/cat_ModelVariant")
 
 # form training df
-data1 = read.csv('Sept18_V2.csv')
-data2 = read.csv('Aug18_V3.csv')
+data1 = read.csv('Aug18_V3.csv')
 
 # starting from "Aug'18 dataset has vehicle variant and series obtained from Mudah
 # issue is those with variant will not provide features info, hence we try to use seller comments instead (text extract)
@@ -23,26 +22,40 @@ data2 = read.csv('Aug18_V3.csv')
 
 # form testing df
 
-verify_data = data1
+verify_data = read.csv('Sept18_V2.csv')
 # verify_data = read.csv("Jun18_V2.csv")
 # verify_data = read.csv("Mar18_V1.csv")
 
 
 # substitute features with seller comments
-data2$Features = as.character(data2$Features)
-data2$Seller_Comments = as.character(data2$Seller_Comments)
+data1$Features = as.character(data1$Features)
+data1$Seller_Comments = as.character(data1$Seller_Comments)
 
-data2$Text = ifelse(data2$Variant == "", 
-                    data2$Features, data2$Seller_Comments)
+data1$Text = ifelse(data1$Variant == "", 
+                    data1$Features, data1$Seller_Comments)
 
-data2$Transmission = as.factor(
-  ifelse(grepl("manual", data2$Transmission, ignore.case = TRUE), 
+data1$Transmission = as.factor(
+  ifelse(grepl("manual", data1$Transmission, ignore.case = TRUE), 
          "MANUAL", "AUTO"))
+
+verify_data$Features = as.character(verify_data$Features)
+verify_data$Seller_Comments = as.character(verify_data$Seller_Comments)
+
+verify_data$Text = ifelse(verify_data$Variant == "", 
+                    verify_data$Features, verify_data$Seller_Comments)
+
+verify_data$Transmission = as.factor(
+  ifelse(grepl("manual", verify_data$Transmission, ignore.case = TRUE), 
+         "MANUAL", "AUTO"))
+
+
+# Search for top text features --------------------------------------------
 
 # search text if certain top features appeared
 library(quanteda)
 quanteda_options("threads" = 4)
-corpus_text = corpus(as.character(data2$Text)) # creates corpus
+corpus_text = corpus(as.character(data1$Text)) # creates corpus
+
 
 dfm_text <- dfm( # creates document feature matrix
   corpus_text, ngrams = 1,
@@ -52,79 +65,82 @@ dfm_text <- dfm( # creates document feature matrix
 tf_text <- topfeatures(dfm_text, n = 50, decreasing=TRUE)
 tf_text
 
+
+# create new predictors based on key text ---------------------------------
+
 # search Features for key words and form a new column to merge with dataframe
 
-data1$Features = as.character(data1$Features)
-data2$Features = as.character(data2$Features)
-data3$Features = as.character(data3$Features)
-# data4$Features = as.character(data4$Features)
-verify_data$Features = as.character(verify_data$Features)
+# data1$Features = as.character(data1$Features)
+# data2$Features = as.character(data2$Features)
+# # data3$Features = as.character(data3$Features)
+# # data4$Features = as.character(data4$Features)
+# verify_data$Features = as.character(verify_data$Features)
 
-# New Data 2 Search (combined Features/Seller Comments)
-data2$Airbag = grepl("Airbag", data2$Text)
-data2$Leather = grepl("Leather", data2$Text)
-data2$Nav = grepl("Nav", data2$Text)
-data2$ABS = grepl("ABS", data2$Text)
-data2$Sport.Rim = grepl("Sport rim", data2$Text)
-data2$Reverse.Camera = grepl("Reverse camera", data2$Text)
-data2$Power.Door = grepl("Power Door", data2$Text)
-data2$Climate.Control = grepl("Climate control", data2$Text)
-data2$Light = grepl("Light", data2$Text)
-
-# Data 1 Search
-data1$Airbag = grepl("Airbag", data1$Features)
-data1$Leather = grepl("Leather", data1$Features)
-data1$Nav = grepl("Nav", data1$Features)
-data1$ABS = grepl("ABS", data1$Features)
-data1$Sport.Rim = grepl("Sport rim", data1$Features)
-data1$Reverse.Camera = grepl("Reverse camera", data1$Features)
-data1$Power.Door = grepl("Power Door", data1$Features)
-data1$Climate.Control = grepl("Climate control", data1$Features)
-data1$Light = grepl("Light", data1$Features)
-
-# Data 2 Search
-data2$Airbag = grepl("Airbag", data2$Features)
-data2$Leather = grepl("Leather", data2$Features)
-data2$Nav = grepl("Nav", data2$Features)
-data2$ABS = grepl("ABS", data2$Features)
-data2$Sport.Rim = grepl("Sport rim", data2$Features)
-data2$Reverse.Camera = grepl("Reverse camera", data2$Features)
-data2$Power.Door = grepl("Power Door", data2$Features)
-data2$Climate.Control = grepl("Climate control", data2$Features)
-data2$Light = grepl("Light", data2$Features)
-
-# Data 3 Search
-data3$Airbag = grepl("Airbag", data3$Features)
-data3$Leather = grepl("Leather", data3$Features)
-data3$Nav = grepl("Nav", data3$Features)
-data3$ABS = grepl("ABS", data3$Features)
-data3$Sport.Rim = grepl("Sport rim", data3$Features)
-data3$Reverse.Camera = grepl("Reverse camera", data3$Features)
-data3$Power.Door = grepl("Power Door", data3$Features)
-data3$Climate.Control = grepl("Climate control", data3$Features)
-data3$Light = grepl("Light", data3$Features)
-
-# Data 4 Search
-data4$Airbag = grepl("Airbag", data4$Features)
-data4$Leather = grepl("Leather", data4$Features)
-data4$Nav = grepl("Nav", data4$Features)
-data4$ABS = grepl("ABS", data4$Features)
-data4$Sport.Rim = grepl("Sport rim", data4$Features)
-data4$Reverse.Camera = grepl("Reverse camera", data4$Features)
-data4$Power.Door = grepl("Power Door", data4$Features)
-data4$Climate.Control = grepl("Climate control", data4$Features)
-data4$Light = grepl("Light", data4$Features)
+# New Training Data Search (combined Features/Seller Comments)
+data1$Airbag = grepl("Airbag", data1$Text)
+data1$Leather = grepl("Leather", data1$Text)
+data1$Nav = grepl("Nav", data1$Text)
+data1$ABS = grepl("ABS", data1$Text)
+data1$Sport.Rim = grepl("Sport rim", data1$Text)
+data1$Reverse.Camera = grepl("Reverse camera", data1$Text)
+data1$Power.Door = grepl("Power Door", data1$Text)
+data1$Climate.Control = grepl("Climate control", data1$Text)
+data1$Light = grepl("Light", data1$Text)
 
 # Testset Search
-verify_data$Airbag = grepl("Airbag", verify_data$Features)
-verify_data$Leather = grepl("Leather", verify_data$Features)
-verify_data$Nav = grepl("Nav", verify_data$Features)
-verify_data$ABS = grepl("ABS", verify_data$Features)
-verify_data$Sport.Rim = grepl("Sport rim", verify_data$Features)
-verify_data$Reverse.Camera = grepl("Reverse camera", verify_data$Features)
-verify_data$Power.Door = grepl("Power Door", verify_data$Features)
-verify_data$Climate.Control = grepl("Climate control", verify_data$Features)
-verify_data$Light = grepl("Light", verify_data$Features)
+verify_data$Airbag = grepl("Airbag", verify_data$Text)
+verify_data$Leather = grepl("Leather", verify_data$Text)
+verify_data$Nav = grepl("Nav", verify_data$Text)
+verify_data$ABS = grepl("ABS", verify_data$Text)
+verify_data$Sport.Rim = grepl("Sport rim", verify_data$Text)
+verify_data$Reverse.Camera = grepl("Reverse camera", verify_data$Text)
+verify_data$Power.Door = grepl("Power Door", verify_data$Text)
+verify_data$Climate.Control = grepl("Climate control", verify_data$Text)
+verify_data$Light = grepl("Light", verify_data$Text)
+
+# # Data 1 Search
+# data1$Airbag = grepl("Airbag", data1$Features)
+# data1$Leather = grepl("Leather", data1$Features)
+# data1$Nav = grepl("Nav", data1$Features)
+# data1$ABS = grepl("ABS", data1$Features)
+# data1$Sport.Rim = grepl("Sport rim", data1$Features)
+# data1$Reverse.Camera = grepl("Reverse camera", data1$Features)
+# data1$Power.Door = grepl("Power Door", data1$Features)
+# data1$Climate.Control = grepl("Climate control", data1$Features)
+# data1$Light = grepl("Light", data1$Features)
+# 
+# # Data 2 Search
+# data2$Airbag = grepl("Airbag", data2$Features)
+# data2$Leather = grepl("Leather", data2$Features)
+# data2$Nav = grepl("Nav", data2$Features)
+# data2$ABS = grepl("ABS", data2$Features)
+# data2$Sport.Rim = grepl("Sport rim", data2$Features)
+# data2$Reverse.Camera = grepl("Reverse camera", data2$Features)
+# data2$Power.Door = grepl("Power Door", data2$Features)
+# data2$Climate.Control = grepl("Climate control", data2$Features)
+# data2$Light = grepl("Light", data2$Features)
+# 
+# # Data 3 Search
+# data3$Airbag = grepl("Airbag", data3$Features)
+# data3$Leather = grepl("Leather", data3$Features)
+# data3$Nav = grepl("Nav", data3$Features)
+# data3$ABS = grepl("ABS", data3$Features)
+# data3$Sport.Rim = grepl("Sport rim", data3$Features)
+# data3$Reverse.Camera = grepl("Reverse camera", data3$Features)
+# data3$Power.Door = grepl("Power Door", data3$Features)
+# data3$Climate.Control = grepl("Climate control", data3$Features)
+# data3$Light = grepl("Light", data3$Features)
+# 
+# # Data 4 Search
+# data4$Airbag = grepl("Airbag", data4$Features)
+# data4$Leather = grepl("Leather", data4$Features)
+# data4$Nav = grepl("Nav", data4$Features)
+# data4$ABS = grepl("ABS", data4$Features)
+# data4$Sport.Rim = grepl("Sport rim", data4$Features)
+# data4$Reverse.Camera = grepl("Reverse camera", data4$Features)
+# data4$Power.Door = grepl("Power Door", data4$Features)
+# data4$Climate.Control = grepl("Climate control", data4$Features)
+# data4$Light = grepl("Light", data4$Features)
 
 ## ## ## ## ## ## ## ## 
 
@@ -142,11 +158,11 @@ verify_data$Light = grepl("Light", verify_data$Features)
 # Extract data, form dataframe --------------------------------------------
 
 # extract relevant variables and form new dataframe
-
+# 
 training_data1 = cbind.data.frame(
   data1$ID, data1$Brand, data1$Model, data1$Features, data1$Price,
   data1$Model.Variant, data1$Mfg_Year, data1$Engine_Capacity, data1$Transmission,
-  data1$Airbag, data1$Leather, data1$Nav, data1$ABS, 
+  data1$Airbag, data1$Leather, data1$Nav, data1$ABS,
   data1$Sport.Rim, data1$Reverse.Camera, data1$Power.Door,
   data1$Climate.Control, data1$Light
 )
@@ -157,72 +173,92 @@ names(training_data1) = c("ID", "Brand", "Model", "Features", "Price",
                          "SportRims", "RevCam", "PowDoor",
                          "ClimaCtrl", "Light"
                     )
+# 
+# training_data2 = cbind.data.frame(
+#   data2$ID, data2$Brand, data2$Model, data2$Features, data2$Price,
+#   data2$Model.Variant, data2$Mfg_Year, data2$Engine_Capacity, data2$Transmission,
+#   data2$Airbag, data2$Leather, data2$Nav, data2$ABS, 
+#   data2$Sport.Rim, data2$Reverse.Camera, data2$Power.Door,
+#   data2$Climate.Control, data2$Light
+# )
+# 
+# names(training_data2) = c("ID", "Brand", "Model", "Features", "Price",
+#                           "Modelvar", "MfgYr", "CC", "Transm",
+#                           "Airbag", "Leather", "Nav", "ABS",
+#                           "SportRims", "RevCam", "PowDoor",
+#                           "ClimaCtrl", "Light"
+# )
 
-training_data2 = cbind.data.frame(
-  data2$ID, data2$Brand, data2$Model, data2$Features, data2$Price,
-  data2$Model.Variant, data2$Mfg_Year, data2$Engine_Capacity, data2$Transmission,
-  data2$Airbag, data2$Leather, data2$Nav, data2$ABS, 
-  data2$Sport.Rim, data2$Reverse.Camera, data2$Power.Door,
-  data2$Climate.Control, data2$Light
+# training_data3 = cbind.data.frame(
+#   data3$ID, data3$Brand, data3$Model, data3$Features, data3$Price,
+#   data3$Model.Variant, data3$Mfg_Year, data3$Engine_Capacity, data3$Transmission,
+#   data3$Airbag, data3$Leather, data3$Nav, data3$ABS, 
+#   data3$Sport.Rim, data3$Reverse.Camera, data3$Power.Door,
+#   data3$Climate.Control, data3$Light
+# )
+# 
+# names(training_data3) = c("ID", "Brand", "Model", "Features", "Price",
+#                           "Modelvar", "MfgYr", "CC", "Transm",
+#                           "Airbag", "Leather", "Nav", "ABS",
+#                           "SportRims", "RevCam", "PowDoor",
+#                           "ClimaCtrl", "Light"
+# )
+# 
+# training_data4 = cbind.data.frame(
+#   data4$ID, data4$Brand, data4$Model, data4$Features, data4$Price,
+#   data4$Model.variant, data4$Mfg_Year, data4$Engine_Capacity, data4$Transmission,
+#   data4$Airbag, data4$Leather, data4$Nav, data4$ABS, 
+#   data4$Sport.Rims, data4$Reverse.Camera, data4$Power.Door,
+#   data4$Climate.Control, data4$Light
+# )
+# 
+# names(training_data4) = c("ID", "Brand", "Model", "Features", "Price",
+#                           "Modelvar", "MfgYr", "CC", "Transm",
+#                           "Airbag", "Leather", "Nav", "ABS",
+#                           "SportRims", "RevCam", "PowDoor",
+#                           "ClimaCtrl", "Light"
+# )
+
+
+# Prepare testing dataset
+testing_data = cbind.data.frame(
+  verify_data$ID, verify_data$Brand, verify_data$Model, verify_data$Features, verify_data$Price,
+  verify_data$Model.Variant, verify_data$Mfg_Year, verify_data$Engine_Capacity, verify_data$Transmission,
+  verify_data$Airbag, verify_data$Leather, verify_data$Nav, verify_data$ABS, 
+  verify_data$Sport.Rim, verify_data$Reverse.Camera, verify_data$Power.Door,
+  verify_data$Climate.Control, verify_data$Light
 )
 
-names(training_data2) = c("ID", "Brand", "Model", "Features", "Price",
-                          "Modelvar", "MfgYr", "CC", "Transm",
-                          "Airbag", "Leather", "Nav", "ABS",
-                          "SportRims", "RevCam", "PowDoor",
-                          "ClimaCtrl", "Light"
+names(testing_data) = c("ID", "Brand", "Model", "Features", "Price",
+                        "Modelvar", "MfgYr", "CC", "Transm",
+                        "Airbag", "Leather", "Nav", "ABS",
+                        "SportRims", "RevCam", "PowDoor",
+                        "ClimaCtrl", "Light"
 )
 
-training_data3 = cbind.data.frame(
-  data3$ID, data3$Brand, data3$Model, data3$Features, data3$Price,
-  data3$Model.Variant, data3$Mfg_Year, data3$Engine_Capacity, data3$Transmission,
-  data3$Airbag, data3$Leather, data3$Nav, data3$ABS, 
-  data3$Sport.Rim, data3$Reverse.Camera, data3$Power.Door,
-  data3$Climate.Control, data3$Light
-)
 
-names(training_data3) = c("ID", "Brand", "Model", "Features", "Price",
-                          "Modelvar", "MfgYr", "CC", "Transm",
-                          "Airbag", "Leather", "Nav", "ABS",
-                          "SportRims", "RevCam", "PowDoor",
-                          "ClimaCtrl", "Light"
-)
+# Remove duplicates that exist in data set right from the start
+training_data1 = training_data1[!duplicated(training_data1$ID), ]
+# training_data2 = training_data2[!duplicated(training_data2$ID), ]
+# training_data3 = training_data3[!duplicated(training_data3$ID), ]
 
-training_data4 = cbind.data.frame(
-  data4$ID, data4$Brand, data4$Model, data4$Features, data4$Price,
-  data4$Model.variant, data4$Mfg_Year, data4$Engine_Capacity, data4$Transmission,
-  data4$Airbag, data4$Leather, data4$Nav, data4$ABS, 
-  data4$Sport.Rims, data4$Reverse.Camera, data4$Power.Door,
-  data4$Climate.Control, data4$Light
-)
-
-names(training_data4) = c("ID", "Brand", "Model", "Features", "Price",
-                          "Modelvar", "MfgYr", "CC", "Transm",
-                          "Airbag", "Leather", "Nav", "ABS",
-                          "SportRims", "RevCam", "PowDoor",
-                          "ClimaCtrl", "Light"
-)
+testing_data = testing_data[!duplicated(testing_data$ID), ]
 
 dim(training_data1) # 100k obs
-dim(training_data2) # 100k obs
-dim(training_data3) # 100k obs
+# dim(training_data2) # 100k obs
+# dim(training_data3) # 100k obs
 # dim(training_data4) #109,591 obs
-
+dim(testing_data)
 
 # Decide dataset to merge -------------------------------------------------
 
 # 1st case: choose most recent data set for training
-training_data = training_data2
+
+training_data = training_data1
 
 # 2nd case: merge historical datasets by outer join 2 df
 # consider using data.table for faster computation
 
-# # Remove duplicates that exist in data set right from the start
-# 
-# training_data1 = training_data1[!duplicated(training_data1$ID), ]
-# training_data2 = training_data2[!duplicated(training_data2$ID), ]
-# training_data3 = training_data3[!duplicated(training_data3$ID), ]
-# 
 # # training_data_merged = merge(training_data1, training_data2, all=TRUE) # use left join to prioritize newer datasets
 # # training_data = merge(training_data, training_data3, all=TRUE)
 # # training_data = merge(training_data, training_data4, all=TRUE)
@@ -255,9 +291,9 @@ training_data = training_data2
 
 dim(training_data)
 # merge Mar-May'18 ~210k obs
+dim(testing_data)
 
-
-# Prep merged data ---------------------------------------------------------------
+# Data Cleaning ---------------------------------------------------------------
 
 # re-factorize data
 
@@ -267,8 +303,17 @@ training_data$Model = as.factor(toupper(trimws(training_data$Model)))
 training_data$Transm = as.factor(toupper(trimws(training_data$Transm)))
 training_data$MfgYr = as.factor(toupper(trimws(training_data$MfgYr)))
 
+testing_data$Brand = as.factor(toupper(trimws(testing_data$Brand)))
+testing_data$Modelvar = as.factor(toupper(trimws(testing_data$Modelvar)))
+testing_data$Model = as.factor(toupper(trimws(testing_data$Model)))
+testing_data$Transm = as.factor(toupper(trimws(testing_data$Transm)))
+testing_data$MfgYr = as.factor(toupper(trimws(testing_data$MfgYr)))
+
+# convert to numeric
 training_data$CC = as.numeric(training_data$CC)
 training_data$Price = as.numeric(gsub('[,]', '', training_data$Price))
+
+testing_data$Price = as.numeric(gsub('[,]', '', testing_data$Price))
 
 # filter out empty cells & NAs
 training_data = training_data[complete.cases(training_data[ , -4]), ]
@@ -278,43 +323,6 @@ training_data = dplyr::filter(training_data, Brand != "" & Model != "" &
                                 !(MfgYr %in% c("", "1995 OR OLDER")) &
                                 Transm != "")
 
-
-training_data = droplevels(training_data)
-
-training_data$CC_adj = ifelse(training_data$CC<100, training_data$CC*100,
-                              ifelse(training_data$CC<10000, training_data$CC, training_data$CC))
-
-training_data = dplyr::filter(training_data, !is.na(CC_adj) & CC_adj < 10000)
-
-# scale data at respective make level
-
-
-# Prepare testing dataset
-testing_data = cbind.data.frame(
-  verify_data$ID, verify_data$Brand, verify_data$Model, verify_data$Features, verify_data$Price,
-  verify_data$Model.Variant, verify_data$Mfg_Year, verify_data$Engine_Capacity, verify_data$Transmission,
-  verify_data$Airbag, verify_data$Leather, verify_data$Nav, verify_data$ABS, 
-  verify_data$Sport.Rim, verify_data$Reverse.Camera, verify_data$Power.Door,
-  verify_data$Climate.Control, verify_data$Light
-)
-
-names(testing_data) = c("ID", "Brand", "Model", "Features", "Price",
-                         "Modelvar", "MfgYr", "CC", "Transm",
-                         "Airbag", "Leather", "Nav", "ABS",
-                         "SportRims", "RevCam", "PowDoor",
-                         "ClimaCtrl", "Light"
-)
-
-testing_data = testing_data[!duplicated(testing_data$ID), ]
-
-testing_data$Brand = as.factor(toupper(trimws(testing_data$Brand)))
-testing_data$Modelvar = as.factor(toupper(trimws(testing_data$Modelvar)))
-testing_data$Model = as.factor(toupper(trimws(testing_data$Model)))
-testing_data$Transm = as.factor(toupper(trimws(testing_data$Transm)))
-testing_data$MfgYr = as.factor(toupper(trimws(testing_data$MfgYr)))
-
-testing_data$Price = as.numeric(gsub('[,]', '', testing_data$Price))
-
 testing_data = testing_data[complete.cases(testing_data[ , -4]), ]
 
 testing_data = dplyr::filter(testing_data, Brand != "" & Model != "" &
@@ -322,55 +330,72 @@ testing_data = dplyr::filter(testing_data, Brand != "" & Model != "" &
                                !(MfgYr %in% c("", "1995 OR OLDER")) &
                                Transm != "")
 
+training_data = droplevels(training_data)
 testing_data = droplevels(testing_data)
+
+# adjust CC levels
+training_data$CC_adj = ifelse(training_data$CC<100, training_data$CC*100,
+                              ifelse(training_data$CC<10000, training_data$CC, training_data$CC))
+
+training_data = dplyr::filter(training_data, !is.na(CC_adj) & CC_adj < 10000)
+
 
 testing_data$CC_adj = ifelse(testing_data$CC<100, testing_data$CC*100,
                              ifelse(testing_data$CC<10000, testing_data$CC, testing_data$CC))
 
 testing_data = dplyr::filter(testing_data, !is.na(CC_adj) & CC_adj < 10000)
 
+
+# check if columnss match
 colnames(training_data) == colnames(testing_data)
+
+
+# Note: scale data at respective make level
+
 
 # Testing for new dataset format (+Variant/Series) ------------------------
 
-train_all = training_data
+train_set = training_data
+pred_set = testing_data
 
 # filter training set only for variants with size >20
-train_all = train_all %>% 
+train_set = train_set %>% 
   dplyr::group_by(Modelvar) %>%
   dplyr::filter(n()>20) %>%
   as.data.frame()
 
-train_all = droplevels(train_all)
+train_set = droplevels(train_set)
 
-colnames(train_all)
+
 to_drop = as.character()
-for (i in 9:(length(colnames(train_all)))){ # check if the loop range is correct
-  test = plyr::count(train_all, colnames(train_all)[i])
+for (i in 9:(length(colnames(train_set)))){ # check if the loop range is correct
+  test = plyr::count(train_set, colnames(train_set)[i])
   if (length(test$freq) == 1){ 
     # alternative we can add: if length(test$freq) > 1, then test$freq[1]/test$freq[2] < 5% then remove
-    to_drop = c(paste(colnames(train_all)[i]), to_drop)
+    to_drop = c(paste(colnames(train_set)[i]), to_drop)
   }
 }
 
 drops = c(to_drop, "ID", "Features", "Price", "CC")
 
 # drop all non-relevant predictors
-train_all = train_all[, !names(train_all) %in% drops]
+train_set = train_set[, !names(train_set) %in% drops]
+pred_set = pred_set[, !names(pred_set) %in% drops]
 
-str(train_all)
+str(train_set)
+str(pred_set)
 
 
 # Create train, valid, test set with caret ------------------------------------
 
 library(caret)
 set.seed(123)
-trainIndex <- createDataPartition(train_all$Modelvar, p = .7, 
+trainIndex <- createDataPartition(train_set$Modelvar, p = .7, 
                                   list = FALSE, 
                                   times = 1)
 
-df_split_train = train_all[trainIndex, ]
-df_split_nonTrain = train_all[-trainIndex, ]
+df_split_train = train_set[trainIndex, ]
+df_split_nonTrain = train_set[-trainIndex, ]
 
 validIndex <- createDataPartition(df_split_nonTrain$Modelvar, p = .5, 
                                   list = FALSE, 
@@ -382,7 +407,7 @@ df_split_test = df_split_nonTrain[-validIndex, ]
 dim(df_split_train)
 dim(df_split_valid)
 dim(df_split_test)
-
+dim(pred_set)
 
 
 # create h2o df -----------------------------------------------------------
@@ -392,10 +417,17 @@ df_train <- as.h2o(df_split_train)
 df_valid <- as.h2o(df_split_valid)
 df_test <- as.h2o(df_split_test)
 
-# h2o glm (too long to tune)-----------------------------------------------------------------
+# note to remove response var from prediction set
+df_pred <- as.h2o(pred_set)
+df_pred_subset1k <- as.h2o(subset(pred_set[1:1000,], select = -c(Modelvar)))
+
+
+df_pred_subset1k
 
 y <- 'Modelvar'
 x <- setdiff(names(df_train), y)
+
+# h2o glm (too long to tune)----------------------------------------------------------------
 
 system.time(glm_fit1 <- h2o.glm(x = x, 
                     y = y, 
@@ -474,9 +506,9 @@ gbm_fit4@model$variable_importances
 
 # h2o gbm grid search ---------------------------------------------------------
 
-hyper_params = list(max_depth = seq(1, 5, 1),
-                    learn_rate = seq(0.05, 0.1, 0.01), # smaller learning rate is better
-                    learn_rate_annealing = 0.99
+hyper_params = list(max_depth = seq(1, 5, 1)#,
+                    # learn_rate = seq(0.05, 0.1, 0.01), # smaller learning rate is better
+                    # learn_rate_annealing = 0.99
                     # sample_rate = seq(0.2, 1, 0.01), # sample % of rows per tree
                     # col_sample_rate = seq(0.2, 1, 0.01), # sample % of columns per split
                     # col_sample_rate_per_tree = seq(0.2, 1, 0.01),
@@ -488,12 +520,13 @@ hyper_params = list(max_depth = seq(1, 5, 1),
                     #histogram_type = c("UniformAddptive", 'QuantilesGlobal', 'RoundRobin') # QG, RR good for num col with outliers
 )
 
-search_criteria <- list(strategy = "RandomDiscrete", # 'Cartesian'
-                        max_runtime_secs = 3200,
-                        # max_models = 5,
-                        stopping_rounds = 5,
-                        stopping_metric = 'AUTO',
-                        stopping_tolerance = 1e-3)
+search_criteria <- list(
+  strategy = "RandomDiscrete", # 'Cartesian'
+  max_runtime_secs = 3600,
+  # max_models = 5,
+  stopping_rounds = 5,
+  stopping_metric = 'AUTO',
+  stopping_tolerance = 1e-3)
 
 system.time(grid <- h2o.grid(
   hyper_params = hyper_params,
@@ -504,20 +537,21 @@ system.time(grid <- h2o.grid(
   y = y, 
   training_frame = df_train, 
   validation_frame = df_valid,
+  
   ntrees = 10000, ## more trees is better if the learning rate is small enough 
   ## here, use "more than enough" trees - we have early stopping
   
-  seed = 1)
-  #learn_rate = 0.01,
-  #score_tree_interval = 10) # score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+  seed = 1,
+  learn_rate = 0.01,
+  score_tree_interval = 10) # score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
 )
 
-h2o.removeAll()
+# h2o.removeAll()
 
 grid@summary_table # default ordered by logloss
 
 # search time: 10 mins, only 1 model is trained
-# search time: 60 mins, 2 models only??
+# search time: 60 mins, 1 / 2 models only??
 # search time: 120 mins, 3 models
 h2o.logloss((h2o.getModel(grid@model_ids[[1]])), valid = TRUE)
 
@@ -526,27 +560,93 @@ h2o.logloss((h2o.getModel(grid@model_ids[[1]])), valid = TRUE)
 # Performance:
 # 10 mins give us logloss 0.74
 # 60 mins: logloss 0.38 (max depth 3)
+# 60 mins: logloss 0.45 (max depth 5)
 # 120 mins: logloss 0.45 (max depth 1)
 
+h2o.confusionMatrix(h2o.getModel(grid@model_ids[[1]]), valid=TRUE)
+
+var_impt_tbl  = h2o.varimp(h2o.getModel(grid@model_ids[[1]]))
+# consider taking out most of the text features indicator
 
 
 # save best model
 
-# gbm_search_best_model = h2o.getModel(grid@model_ids[[1]])
+gbm_search_best_model = h2o.getModel(grid@model_ids[[1]])
 # gbm_search_saved_model = h2o.saveModel(gbm_search_best_model, path=getwd(), force = TRUE)
 
-h2o.confusionMatrix(h2o.getModel(grid@model_ids[[1]]))
+# load best model
+# gbm_search_best_model_1 = h2o.loadModel(gbm_search_saved_model)
+# 
+# 
+# validset_accuracy = as.data.frame(h2o.confusionMatrix(gbm_search_best_model_1, valid=TRUE))
+# write.csv(validset_accuracy,"validset_all_gbm.csv")
+
+
+# compare vs prediction set -----------------------------------------------
+
+system.time(pred_prob <- h2o.predict(object = gbm_search_best_model, newdata = df_pred_subset1k))
+system.time(pred_prob <- h2o.predict(object = gbm_search_best_model, newdata = df_pred))
+# 1k predictions took 2 mins +
+# 56k preds (352 variants) took 114 mins
+
+# probably consider multi label classification?
+
+colnames(pred_prob)
+
+selected_output_gbm = as.data.frame(pred_set$Modelvar)
+selected_output_gbm$est_var = colnames(pred_prob[, -1])[max.col(pred_prob[, -1], ties.method="first")]
+colnames(selected_output_gbm) = c('act_var', 'est_var')
+
+dim(plyr::count(selected_output_gbm$est_var)) # identified no. of variants predicted
+sum(selected_output_gbm$est_var == selected_output_gbm$act_var)/nrow(selected_output_gbm) # accuracy level
+# 47% accuracy only
+
+
+# Bar chart plot ----------------------------------------------------------
+
+# plot per class accuracy
+error_table = cbind.data.frame(Variant = rownames(validset_accuracy), Error = validset_accuracy$Error)
+error_table_100 = dplyr::filter(error_table, error_table$Error == 1)
+error_table_75 = dplyr::filter(error_table, between(error_table$Error, 0.75, 0.99))
+error_table_50 = dplyr::filter(error_table, error_table$Error > 0.5)
+error_table_20 = dplyr::filter(error_table, error_table$Error > 0.2)
+
+plot_data = error_table_75
+
+# library(ggplot2)
+# library(stringr)
+
+plot_data %>%
+  arrange(desc(Error)) %>%
+  slice(1:10) %>%
+  ggplot(
+    .,
+    aes(
+      x = reorder(Variant, -Error, sum),
+      y = Error)) +
+  geom_bar(stat="identity") + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10))
+
+# p = ggplot(
+#   data = plot_data,
+#   aes(
+#     x = reorder(Variant, -Error, sum),
+#     y = Error)) +
+#   geom_bar(stat="identity")
+# 
+# p
+
 
 ## sort the grid models by preferred metric
 sortedGrid <- h2o.getGrid(grid@grid_id, sort_by="mse", decreasing = FALSE)
 
 
 ## find the range of max_depth for the top 5 models - can be used to set for further tuning
-topDepths = sortedGrid@summary_table$max_depth[1:5]
-minDepth = min(as.numeric(topDepths))
-maxDepth = max(as.numeric(topDepths))
-minDepth
-maxDepth
+# topDepths = sortedGrid@summary_table$max_depth[1:5]
+# minDepth = min(as.numeric(topDepths))
+# maxDepth = max(as.numeric(topDepths))
+# minDepth
+# maxDepth
 
 
 
